@@ -5,20 +5,23 @@ import os
 
 sys.path.append("..")
 from src.schedule_trainer.scheduler import Scheduler
-from src.schedule_trainer.rl_agent import RLAgent
 from src.schedule_trainer.observation_program import ObservationProgram
 
-import astropy.units as u
 from astropy.time import Time
 import astroplan
+
+scheduler_config_path = os.path.abspath("../src/schedule_trainer/train_configs"
+                                        "/default_schedule.conf")
+obs_config_path = os.path.abspath("../src/schedule_trainer/train_configs" \
+                              "/default_obsprog.conf")
+agent_config_path = os.path.abspath("../src/schedule_trainer/train_configs" \
+                              "/default_agent.conf")
 
 
 class TestObsprog(TestCase):
     def setUp(self) -> None:
-        config_path = os.path.abspath("../src/schedule_trainer/train_configs" \
-                              "/default_obsprog.conf")
         start_time = "2018-09-16T01:00:00Z"
-        self.obsprog = ObservationProgram(start_time, config_path)
+        self.obsprog = ObservationProgram(start_time, obs_config_path)
 
     def test_set_observatory(self):
         self.assertEquals(type(self.obsprog.observatory), astroplan.Observer)
@@ -61,32 +64,40 @@ class TestObsprog(TestCase):
 
         self.assertNotEqual(init_state, next_state)
 
-class TestRLAgent(TestCase):
-    def setUp(self) -> None:
-
-        pass
-
-    def test_update_eq(self):
-        pass
-
-    def test_make_action_table(self):
-        pass
-
-    def test_teff_reward(self):
-        pass
-
-    def test_pick_actions(self):
-        pass
-
-    def test_invalid_actions(self):
-        pass
-
-    def test_save_schedule(self):
-        pass
-
-
 
 class TestScheduler(TestCase):
+    def setUp(self) -> None:
+        self.scheduler = Scheduler(scheduler_config_path)
+
+    def test_make_action_table(self):
+        actions = self.scheduler.generate_action_table()
+
+        expected_columns = {"ra", "decl", "band", "exposure_time"}
+        columns = set(actions.columns)
+        self.assertEqual(expected_columns, columns)
+
+        self.assertEqual(len(actions), 10)
+
+    def test_teff_reward(self):
+        observation = ObservationProgram("2018-09-16T01:00:00Z",
+                                         obs_config_path).state
+        invalid_reward = self.scheduler.invalid_reward
+        self.assertEqual(invalid_reward, self.scheduler.reward(observation))
+
+    def test_invalid_actions(self):
+        observation = ObservationProgram("2018-09-16T01:00:00Z",
+                                         obs_config_path).state
+        self.assertTrue(observation)
+
+    def test_save_schedule(self):
+        self.scheduler.save(".")
+
+        self.assertTrue(os.path.exists("./schedule.csv"))
+        if os.path.exists("./schedule.csv"):
+            os.remove("./schedule.csv")
+
+
+class TestRLScheduler(TestCase):
     def setUp(self) -> None:
         pass
 
@@ -99,6 +110,14 @@ class TestScheduler(TestCase):
     def test_init_random_time(self):
         pass
 
+
+class TestSquenScheduler(TestCase):
+    def setUp(self) -> None:
+        pass
+
+class TestVarScheduler(TestCase):
+    def setUp(self) -> None:
+        pass
 
 if __name__ == '__main__':
     unittest.main()

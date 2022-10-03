@@ -205,6 +205,9 @@ class ObservationProgram:
 
         exposure['teff'] = exposure['tau'] * self.exposure_time
 
+        for key in self.obs:
+            exposure[key] = self.obs[key]
+
         self.state = exposure
         return exposure
 
