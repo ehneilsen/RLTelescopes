@@ -20,6 +20,9 @@ wheels/
 *.egg
 MANIFEST
 
+# Python execution junk
+*.pyc
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
