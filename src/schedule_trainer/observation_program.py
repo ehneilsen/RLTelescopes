@@ -114,16 +114,16 @@ class ObservationProgram:
     def current_coord(self):
         return SkyCoord(ra=self.ra*u.degree, dec=self.decl*u.degree)
 
-    def trans_to_altaz(self, coord):
-        alt_az = self.observatory.altaz(time=Time(self.mjd, format='mjd'),
+    def trans_to_altaz(self, mjd, coord):
+        alt_az = self.observatory.altaz(time=Time(mjd, format='mjd'),
                                         target=coord)
         return alt_az
 
-    def exposures(self, seeing=0.9, clouds=0.0):
+    def calculate_exposures(self, obs, seeing, clouds):
         ANGLE_UNIT = u.deg
         RIGHT_ANGLE = (90 * u.deg).to_value(ANGLE_UNIT)
 
-        time = Time(self.mjd, format='mjd')
+        time = Time(obs['mjd'], format='mjd')
 
         exposure = {}
         exposure['seeing'] = seeing
@@ -133,18 +133,22 @@ class ObservationProgram:
                                                                'mean').to_value(
             ANGLE_UNIT)
 
-        hzcrds = self.trans_to_altaz(self.current_coord())
+        current_coords = SkyCoord(
+            ra=obs['ra']*u.degree, dec=obs['decl']*u.degree
+        )
+
+        hzcrds = self.trans_to_altaz(obs['mjd'], current_coords)
         exposure['az'] = hzcrds.az.to_value(ANGLE_UNIT)
         exposure['alt'] = hzcrds.alt.to_value(ANGLE_UNIT)
         exposure['zd'] = RIGHT_ANGLE - exposure['alt']
-        exposure['ha'] = exposure['lst'] - self.ra
+        exposure['ha'] = exposure['lst'] - obs['ra']
         exposure['airmass'] = ObservationProgram.calc_airmass(hzcrds)
 
         # Sun coordinates
         sun_crds = get_sun(time)
         exposure['sun_ra'] = sun_crds.ra.to_value(ANGLE_UNIT)
         exposure['sun_decl'] = sun_crds.dec.to_value(ANGLE_UNIT)
-        sun_hzcrds = self.trans_to_altaz(sun_crds)
+        sun_hzcrds = self.trans_to_altaz(obs['mjd'], sun_crds)
         exposure['sun_az'] = sun_hzcrds.az.to_value(ANGLE_UNIT)
         exposure['sun_alt'] = sun_hzcrds.alt.to_value(ANGLE_UNIT)
         exposure['sun_zd'] = RIGHT_ANGLE - exposure['sun_alt']
@@ -173,26 +177,26 @@ class ObservationProgram:
                                 + 0.026 * np.abs(alpha) + 4E-9 * (alpha ** 4)
 
         exposure['moon_angle'] = (moon_crds
-                                  .separation(self.current_coord())
+                                  .separation(current_coords)
                                   .to_value(ANGLE_UNIT))
 
         exposure['sky_mag'] = self.calc_sky(
-            self.mjd,
-            self.ra,
-            self.decl,
-            self.band,
+            obs['mjd'],
+            obs['ra'],
+            obs['decl'],
+            obs['band'],
             moon_crds=moon_crds,
             moon_elongation=moon_elongation.deg,
             sun_crds=sun_crds)
 
-        m0 = self.calc_sky.m_zen[self.band]
+        m0 = self.calc_sky.m_zen[obs['band']]
 
         nu = 10 ** (-1 * clouds / 2.5)
 
         pt_seeing = seeing * exposure['airmass'] ** 0.6
         fwhm500 = np.sqrt(pt_seeing ** 2 + self.optics_fwhm ** 2)
 
-        wavelength = self.band_wavelength[self.band]
+        wavelength = self.band_wavelength[obs['band']]
         band_seeing = pt_seeing * (500.0 / wavelength) ** 0.2
         fwhm = np.sqrt(band_seeing ** 2 + self.optics_fwhm ** 2)
         exposure['fwhm'] = fwhm
@@ -203,11 +207,15 @@ class ObservationProgram:
         exposure['tau'] = 0.0 if ~np.isfinite(exposure['tau']) else \
             exposure['tau']
 
-        exposure['teff'] = exposure['tau'] * self.exposure_time
+        exposure['teff'] = exposure['tau'] * obs['exposure_time']
 
-        for key in self.obs:
-            exposure[key] = self.obs[key]
+        for key in obs:
+            exposure[key] = obs[key]
 
+        return exposure
+
+    def exposures(self, seeing=0.9, clouds=0.0):
+        exposure = self.calculate_exposures(self.obs, seeing, clouds)
         self.state = exposure
         return exposure
 

@@ -5,6 +5,9 @@ import os
 
 sys.path.append("..")
 from src.schedule_trainer.scheduler import Scheduler
+from src.schedule_trainer.variable_scheduler import VariableScheduler
+from src.schedule_trainer.rl_scheduler import RLScheduler
+from src.schedule_trainer.squentical_scheduler import SqueScheduler
 from src.schedule_trainer.observation_program import ObservationProgram
 
 from astropy.time import Time
@@ -117,7 +120,15 @@ class TestSquenScheduler(TestCase):
 
 class TestVarScheduler(TestCase):
     def setUp(self) -> None:
+        self.scheduler = VariableScheduler(scheduler_config_path)
+
+    def test_calculate_actions(self):
         pass
+
+    def test_update_schedule(self):
+        pass
+
+
 
 if __name__ == '__main__':
     unittest.main()
