@@ -13,11 +13,12 @@ import ast
 import astropy.units as u
 
 class Scheduler:
-    def __init__(self, config):
+    def __init__(self, config, obsprog):
         assert os.path.exists(config)
         self.config = configparser.ConfigParser()
         self.config.read(config)
 
+        self.obsprog = obsprog
         self.actions = self.generate_action_table()
         self.invalid_reward = self.config.getfloat("reward", "invalid_reward")
 
@@ -56,25 +57,12 @@ class Scheduler:
                                                         "exposure_time")
         return actions
 
-    def update(self, obsprog):
+    def update(self):
         raise NotImplementedError
-        # obsprog.reset()
-        # done = False
-        # while not done:
-        #     observation = obsprog.observation()
-        #     eq_params = self.rl_agent(observation)
-        #
-        #     action = self.calculate_action(eq_params)
-        #     new_observation = self.feed_action(obsprog, action)
-        #     reward = self.reward(new_observation)
-        #     done = self.check_endtime(obsprog, action)
-        #
-        #     self.rl_agent.update_reward(reward)
-        #     self.update_schedule(action, reward)
 
-    def feed_action(self, obsprog, action):
-        obsprog.update_observation(**action)
-        new_observation = obsprog.state
+    def feed_action(self, action):
+        self.obsprog.update_observation(**action)
+        new_observation = self.obsprog.state
         return new_observation
 
     def save(self, outpath):
@@ -84,7 +72,7 @@ class Scheduler:
         self.schedule.to_csv(schedule_name)
 
     def reward(self, observation):
-        if self.invalid_action(observation):
+        if not self.invalid_action(observation):
             reward = self.invalid_reward
         else:
             reward = self.teff_reward(observation)
@@ -123,6 +111,7 @@ class Scheduler:
 
         # Airmass limits
         ha_change = 2 * np.pi * (mjd - observation['mjd']) * 24 / 23.9344696
+        ha_change = ha_change * RAD
         ha = observation['ha'] * RAD + ha_change
         in_airmass_limit = np.cos(ha) > cos_ha_limit
 
@@ -151,13 +140,13 @@ class Scheduler:
 
     def update_schedule(self, action, reward):
         action["reward"] = reward
-        new_action = pd.DataFrame(action)
+        new_action = pd.DataFrame(action, index=[len(self.schedule)])
         self.schedule = pd.concat([self.schedule, new_action])
 
-    def check_endtime(self, obsprog, action):
+    def check_endtime(self, action):
         done = False
         length = self.config.getfloat("schedule", "length")
-        end_time = obsprog.start_time + length/24
+        end_time = self.obsprog.start_time + length/24
         if action["mjd"]>=end_time:
             done = True
         return done

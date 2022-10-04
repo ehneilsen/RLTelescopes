@@ -31,6 +31,9 @@ class ObservationProgram:
         self.calc_sky = skybright.MoonSkyModel(self.config)
         self.set_optics()
 
+        self.seeing = self.config.getfloat("weather", "seeing")
+        self.clouds = self.config.getfloat("weather", "cloud_extinction")
+
         self.mjd = self.start_time
         self.decl = 0
         self.ra = 0
@@ -56,6 +59,7 @@ class ObservationProgram:
             }
 
         self.wait_time = 300
+
         try:
             self.filter_change_time = self.config.getfloat("bands",
                                                    "filter_change_rate")
@@ -115,19 +119,23 @@ class ObservationProgram:
         return SkyCoord(ra=self.ra*u.degree, dec=self.decl*u.degree)
 
     def trans_to_altaz(self, mjd, coord):
-        alt_az = self.observatory.altaz(time=Time(mjd, format='mjd'),
+        alt_az = self.observatory.altaz(time=mjd,
                                         target=coord)
         return alt_az
 
-    def calculate_exposures(self, obs, seeing, clouds):
+    def calculate_exposures(self, obs):
         ANGLE_UNIT = u.deg
         RIGHT_ANGLE = (90 * u.deg).to_value(ANGLE_UNIT)
 
-        time = Time(obs['mjd'], format='mjd')
+        try:
+            time = Time(obs['mjd'], format='mjd')
+
+        except u.core.UnitConversionError:
+            time = Time(obs['mjd']*u.day, format='mjd')
 
         exposure = {}
-        exposure['seeing'] = seeing
-        exposure['clouds'] = clouds
+        exposure['seeing'] = self.seeing
+        exposure['clouds'] = self.clouds
 
         exposure['lst'] = self.observatory.local_sidereal_time(time,
                                                                'mean').to_value(
@@ -137,7 +145,7 @@ class ObservationProgram:
             ra=obs['ra']*u.degree, dec=obs['decl']*u.degree
         )
 
-        hzcrds = self.trans_to_altaz(obs['mjd'], current_coords)
+        hzcrds = self.trans_to_altaz(time, current_coords)
         exposure['az'] = hzcrds.az.to_value(ANGLE_UNIT)
         exposure['alt'] = hzcrds.alt.to_value(ANGLE_UNIT)
         exposure['zd'] = RIGHT_ANGLE - exposure['alt']
@@ -148,7 +156,7 @@ class ObservationProgram:
         sun_crds = get_sun(time)
         exposure['sun_ra'] = sun_crds.ra.to_value(ANGLE_UNIT)
         exposure['sun_decl'] = sun_crds.dec.to_value(ANGLE_UNIT)
-        sun_hzcrds = self.trans_to_altaz(obs['mjd'], sun_crds)
+        sun_hzcrds = self.trans_to_altaz(time, sun_crds)
         exposure['sun_az'] = sun_hzcrds.az.to_value(ANGLE_UNIT)
         exposure['sun_alt'] = sun_hzcrds.alt.to_value(ANGLE_UNIT)
         exposure['sun_zd'] = RIGHT_ANGLE - exposure['sun_alt']
@@ -191,9 +199,9 @@ class ObservationProgram:
 
         m0 = self.calc_sky.m_zen[obs['band']]
 
-        nu = 10 ** (-1 * clouds / 2.5)
+        nu = 10 ** (-1 * self.clouds / 2.5)
 
-        pt_seeing = seeing * exposure['airmass'] ** 0.6
+        pt_seeing = self.seeing * exposure['airmass'] ** 0.6
         fwhm500 = np.sqrt(pt_seeing ** 2 + self.optics_fwhm ** 2)
 
         wavelength = self.band_wavelength[obs['band']]
@@ -212,52 +220,62 @@ class ObservationProgram:
         for key in obs:
             exposure[key] = obs[key]
 
+        updated_coords = SkyCoord(ra=obs['ra'] * u.degree, dec=obs['decl'] *
+                                                               u.degree)
+        exposure["slew"] = self.calculate_slew(updated_coords, obs['band'])
         return exposure
 
-    def exposures(self, seeing=0.9, clouds=0.0):
-        exposure = self.calculate_exposures(self.obs, seeing, clouds)
+    def calculate_slew(self, new_coords, band):
+        original_coords = self.current_coord()
+
+        coord_sep = original_coords.separation(new_coords)
+        slew_time = self.slew_rate * coord_sep / u.degree
+
+        if original_coords==new_coords:
+            slew_time = self.wait_time
+
+        if band != self.band:
+            slew_time += self.filter_change_time
+
+        slew_time += 20 # Wait 20 seconds
+        slew = slew_time / (60 * 24)  # Convert to days
+        return slew
+
+    def exposures(self):
+        exposure = self.calculate_exposures(self.obs)
         self.state = exposure
         return exposure
 
-    def update_mjd(self, mjd, ra, decl, band):
+    def update_mjd(self, ra, decl, band):
 
-        if mjd is None:
-            original_coords = self.current_coord()
+        original_coords = self.current_coord()
 
-            if (ra is None) and (decl is None):
-                updated_coords = original_coords
+        if (ra is None) and (decl is None):
+            updated_coords = original_coords
 
-            elif (ra is not None) and (decl is None):
-                updated_coords = SkyCoord(ra=ra * u.degree, dec=self.decl *
-                                                                u.degree)
-            elif (ra is None) and (decl is not None):
-                updated_coords = SkyCoord(ra=self.ra * u.degree, dec=decl *
-                                                                 u.degree)
-            else:
-                updated_coords = SkyCoord(ra=ra * u.degree, dec=decl * u.degree)
-
-            coord_sep = original_coords.separation(updated_coords)
-            slew_time = self.slew_rate * coord_sep/ u.degree
-
-            if slew_time == 0.0:
-                slew_time = self.wait_time
-            if band != self.band:
-                slew_time += self.filter_change_time
-
-            self.mjd += slew_time/(60*24) # Convert to days
-
+        elif (ra is not None) and (decl is None):
+            updated_coords = SkyCoord(ra=ra * u.degree, dec=self.decl *
+                                                            u.degree)
+        elif (ra is None) and (decl is not None):
+            updated_coords = SkyCoord(ra=self.ra * u.degree, dec=decl *
+                                                             u.degree)
         else:
-            self.mjd = mjd
+            updated_coords = SkyCoord(ra=ra * u.degree, dec=decl * u.degree)
 
-    def update_observation(self, mjd=None, ra=None, decl=None, band=None,
-                           exposure_time=None):
+        slew_time = self.calculate_slew(updated_coords, band)
+        self.mjd += slew_time
+
+
+    def update_observation(self, ra=None, decl=None, band=None,
+                           exposure_time=None, reward=None):
         # Updates the observation based on input. Any parameters not given
         # are held constant
 
         # Todo update with timestep and not just the action
         # Dependent on the earth's rotation.
         # Slightly more realistic, not strictly necessary for this use case
-        self.update_mjd(mjd, ra, decl, band)
+
+        self.update_mjd(ra, decl, band)
 
         self.ra = ra if ra is not None else self.ra
         self.decl = decl if decl is not None else self.decl
