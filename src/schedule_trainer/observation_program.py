@@ -10,6 +10,7 @@ import configparser
 import ast
 import numpy as np
 import numexpr
+import random
 
 from astropy.coordinates import get_sun, get_moon
 import astroplan
@@ -20,13 +21,14 @@ from astropy.coordinates.earth import EarthLocation
 from skybright import skybright
 
 class ObservationProgram:
-    def __init__(self, start_date, config_path):
+    def __init__(self, config_path):
+
         self.config = configparser.ConfigParser()
         assert os.path.exists(config_path)
         self.config.read(config_path)
 
         self.observatory = self.init_observatory()
-        self.start_time = self.init_time_start(start_date)
+        self.start_time = self.init_time_start()
         self.slew_rate = self.init_slew()
         self.calc_sky = skybright.MoonSkyModel(self.config)
         self.set_optics()
@@ -45,6 +47,7 @@ class ObservationProgram:
 
     def set_optics(self):
         self.optics_fwhm = self.config.getfloat('optics', 'fwhm')
+
         try:
             self.band_wavelength = ast.literal_eval(
                     self.config.get('bands', 'wavelengths'))
@@ -77,7 +80,7 @@ class ObservationProgram:
         }
 
     def reset(self):
-        self.mjd = self.start_time
+        self.mjd = self.init_time_start()
         self.decl = 0
         self.ra = 0
         self.band = 'g'
@@ -96,8 +99,15 @@ class ObservationProgram:
             elevation=ele*u.m
         )
 
-    def init_time_start(self, start_date):
-        return Time(start_date, location=self.observatory.location).mjd
+    def init_time_start(self):
+        # TODO Check for moon !!
+        year = random.choice([i + 10 for i in range(0, 24)])
+        month = random.choice([i + 1 for i in range(11)])
+        day = random.choice([i + 1 for i in range(28)])
+        date = f"20{year}-{str(month).zfill(2)}-{str(day).zfill(2)}T01:00:00Z"
+
+        sunset = self.observatory.sun_set_time(Time(date)).mjd
+        return sunset
 
     def init_slew(self):
         slew_expr = self.config.getfloat('slew', 'slew_expr')
@@ -218,11 +228,15 @@ class ObservationProgram:
         exposure['teff'] = exposure['tau'] * obs['exposure_time']
 
         for key in obs:
-            exposure[key] = obs[key]
+            if key not in ['band']:
+                exposure[key] = obs[key]
 
         updated_coords = SkyCoord(ra=obs['ra'] * u.degree, dec=obs['decl'] *
                                                                u.degree)
         exposure["slew"] = self.calculate_slew(updated_coords, obs['band'])
+
+        exposure = pd.DataFrame(exposure, index=[0]).fillna(0).to_dict(
+            "records")[0]
         return exposure
 
     def calculate_slew(self, new_coords, band):

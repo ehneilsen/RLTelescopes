@@ -11,14 +11,18 @@ import os
 import ast
 
 import astropy.units as u
+from observation_program import ObservationProgram
+
 
 class Scheduler:
-    def __init__(self, config, obsprog):
+    def __init__(self, config, obsprog_config):
         assert os.path.exists(config)
         self.config = configparser.ConfigParser()
         self.config.read(config)
 
-        self.obsprog = obsprog
+        assert os.path.exists(obsprog_config)
+        self.obsprog = ObservationProgram(obsprog_config)
+
         self.actions = self.generate_action_table()
         self.invalid_reward = self.config.getfloat("reward", "invalid_reward")
 

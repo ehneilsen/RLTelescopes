@@ -22,6 +22,7 @@ MANIFEST
 
 # Python execution junk
 *.pyc
+__pycache__/
 
 # Unit test / coverage reports
 htmlcov/

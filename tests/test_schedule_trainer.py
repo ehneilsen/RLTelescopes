@@ -108,7 +108,7 @@ class TestRLScheduler(TestCase):
         obsprog = ObservationProgram("2018-09-16T01:00:00Z",
                                          obs_config_path)
         self.scheduler = RLScheduler(scheduler_config_path, obsprog)
-        self.rl_agent = RLEnv(agent_config_path, self.scheduler)
+        self.rl_env = RLEnv(self.scheduler)
 
     def test_calc_actual_action(self):
         nn_action = {"weight_slew": .5, "weight_ha":.5, "weight_airmass":.5,
@@ -136,6 +136,18 @@ class TestRLScheduler(TestCase):
 
         self.assertNotEqual(len(self.scheduler.schedule), 0)
         self.assertNotEqual(self.scheduler.schedule['ra'].sum(), 0)
+
+    def test_env_obs_space(self):
+        # Idk how to actually check this. I'll just make sure it works LMAO
+        obs_space = self.rl_env.observation_space
+
+    def test_env_step(self):
+        nn_action = {"weight_slew": .5, "weight_ha": .5, "weight_airmass": .5,
+                     'weight_moon_angle': .5}
+        obs, reward, done, info = self.rl_env.step(nn_action)
+
+        self.assertEqual(obs['teff'], reward)
+        self.assertEqual(done, False)
 
 
 class TestSquenScheduler(TestCase):

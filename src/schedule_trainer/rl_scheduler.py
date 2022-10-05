@@ -2,20 +2,19 @@
 A two stage predictor.  An NN is trained on N steps of data.
 The output is the weights used to predict the next action (for each weight)
 
-
 """
 
-from src.schedule_trainer.scheduler import Scheduler
+from scheduler import Scheduler
 import gym
-import configparser
 from functools import cached_property
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from collections import OrderedDict
 
 class RLScheduler(Scheduler):
-    def __init__(self, config, obsprog):
-        super().__init__(config, obsprog)
+    def __init__(self, config, obsprog_config):
+        super().__init__(config, obsprog_config)
 
     def update(self, nn_weights):
         ## Rolling out a schedule with given weights
@@ -78,15 +77,20 @@ class RLScheduler(Scheduler):
 
 
 class RLEnv(gym.Env):
-    def __init__(self, config, scheduler):
+    def __init__(self, config):
         super().__init__()
 
-        self.current_reward = 0
-        self.scheduler = scheduler
-        self.action_space = gym.spaces.Discrete(len(scheduler.actions) + 1)
+        self.scheduler = RLScheduler(
+            config=config["scheduler_config"],
+            obsprog_config=config["obsprog_config"]
+        )
+        self.current_reward = self.reward()
+
+    def reward(self):
+        return self.scheduler.reward(self.scheduler.obsprog.state)
 
     @cached_property
-    def observation_space(self):
+    def action_space(self):
         space = {
             "weight_slew":gym.spaces.Box(
                 low=0, high=1, shape=(1,), dtype=np.float32),
@@ -97,24 +101,54 @@ class RLEnv(gym.Env):
             "weight_moon_angle":gym.spaces.Box(
                 low=0, high=1, shape=(1,), dtype=np.float32)
         }
+        action_space = gym.spaces.Dict(space)
+        return action_space
+
+    @cached_property
+    def observation_space(self):
+        obs = self.scheduler.obsprog.state
+        obs_vars = obs.keys()
+        space = {
+            obs_var:gym.spaces.Box(
+                low=-10000, high=10000, shape=(1,), dtype=np.float32
+            )
+            for obs_var in obs_vars
+        }
+        space['mjd'] = gym.spaces.Box(
+                low=55165, high=70000, shape=(1,), dtype=np.float32
+            )
         obs_space = gym.spaces.Dict(space)
         return obs_space
 
     def step(self, action):
+        original_time = self.scheduler.obsprog.mjd
 
         true_action = self.scheduler.calculate_action(
             action=action,
             obs=self.scheduler.obsprog.obs
         )
+        self.scheduler.feed_action(true_action)
 
-        self.scheduler.obsprog.feed_action(true_action)
+        true_action['mjd'] = original_time
         observation = self.scheduler.obsprog.state
+        reward = self.reward()
+        done = self.scheduler.check_endtime(true_action)
+        info = {}
 
-        reward = self.scheduler.reward()
-        done = self.scheduler.check_endtime(action)
-        info = ""
+        observation = {
+            var: np.array([observation[var]], dtype=np.float32)
+            for var in observation.keys()
+        }
+
         return observation, reward, done, info
 
     def reset(self):
         self.scheduler.obsprog.reset()
+
+        current_obs = self.scheduler.obsprog.state
+        observation = {
+            obs_var: np.array([val], dtype=np.float32)
+                for obs_var, val in current_obs.items()
+            }
+        return observation
 
