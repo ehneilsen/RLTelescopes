@@ -3,6 +3,7 @@ Combines all training pieces and trains and outputs a model
 Uses RLlib's evostrat agent
 Everything else is custom. See notes for those pieces indiv'ly
 """
+
 import sys
 
 import argparse
@@ -18,8 +19,7 @@ warnings.filterwarnings("ignore")
 
 sys.path.append("../src")
 
-from rl_scheduler import RLScheduler, RLEnv
-from observation_program import ObservationProgram
+from rl_scheduler import RLEnv
 
 scheduler_config_path = os.path.abspath("train_configs"
                                         "/default_schedule.conf")
@@ -45,7 +45,6 @@ def make_agent(env, env_config):
     agent_config["log_level"] = "IGNORE"
     agent_config["env_config"] = env_config
     agent_config['num_workers'] = 1
-    #agent_config['episodes_per_batch'] = 20
     agent = es.ESTrainer(config=agent_config, env=env)
     return agent
 
