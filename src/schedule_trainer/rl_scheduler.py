@@ -20,16 +20,13 @@ class RLScheduler(Scheduler):
         ## Rolling out a schedule with given weights
         self.obsprog.reset()
         length = self.config.getfloat("schedule", "length")
-        n_steps = int((length * 60 * 60) / self.config.getfloat("actions",
-                                                                "exposure_time")) + 1
 
-        for _, _ in zip(range(n_steps), tqdm(range(n_steps))):
-            action = self.calculate_action(action=nn_weights)
-            self.feed_action(action)
+        action = self.calculate_action(action=nn_weights)
+        self.feed_action(action)
 
-            reward = action['reward']
-            action['mjd'] = self.obsprog.mjd
-            self.update_schedule(action, reward)
+        reward = action['reward']
+        action['mjd'] = self.obsprog.mjd
+        self.update_schedule(action, reward)
 
     def quality(self, new_obs, nn_action):
         slew = nn_action["weight_slew"]*new_obs["slew"]

@@ -19,9 +19,10 @@ class Scheduler:
         assert os.path.exists(config)
         self.config = configparser.ConfigParser()
         self.config.read(config)
+        duration = self.config.getfloat('schedule', 'length')
 
         assert os.path.exists(obsprog_config)
-        self.obsprog = ObservationProgram(obsprog_config)
+        self.obsprog = ObservationProgram(obsprog_config, duration)
 
         self.actions = self.generate_action_table()
         self.invalid_reward = self.config.getfloat("reward", "invalid_reward")
@@ -133,14 +134,7 @@ class Scheduler:
 
     def calculate_action(self, **action_params):
         raise NotImplementedError
-        # # TODO
-        # action_coeff = eq_params.coeff
-        # action_powers = eq_params.powers
-        #
-        # actions_weights = ""
-        # action = {}
-        #
-        # return action
+
 
     def update_schedule(self, action, reward):
         action["reward"] = reward

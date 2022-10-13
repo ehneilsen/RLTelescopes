@@ -20,15 +20,17 @@ from astropy.coordinates import SkyCoord
 from astropy.coordinates.earth import EarthLocation
 from skybright import skybright
 
+import warnings
+warnings.filterwarnings("ignore")
+
 class ObservationProgram:
-    def __init__(self, config_path):
+    def __init__(self, config_path, duration):
 
         self.config = configparser.ConfigParser()
         assert os.path.exists(config_path)
         self.config.read(config_path)
-
+        self.duration = duration
         self.observatory = self.init_observatory()
-        self.start_time = self.init_time_start()
         self.slew_rate = self.init_slew()
         self.calc_sky = skybright.MoonSkyModel(self.config)
         self.set_optics()
@@ -36,14 +38,8 @@ class ObservationProgram:
         self.seeing = self.config.getfloat("weather", "seeing")
         self.clouds = self.config.getfloat("weather", "cloud_extinction")
 
-        self.mjd = self.start_time
-        self.decl = 0
-        self.ra = 0
-        self.band = "g"
-        self.exposure_time = 300
+        self.reset()
 
-        self.obs = self.observation()
-        self.state = self.exposures()
 
     def set_optics(self):
         self.optics_fwhm = self.config.getfloat('optics', 'fwhm')
@@ -80,10 +76,12 @@ class ObservationProgram:
         }
 
     def reset(self):
-        self.mjd = self.init_time_start()
+        self.start_time, self.end_time = self.init_time_start()
+        self.mjd = self.start_time
         self.decl = 0
         self.ra = 0
         self.band = 'g'
+        self.exposure_time = 300
 
         self.obs = self.observation()
         self.state = self.exposures()
@@ -101,13 +99,19 @@ class ObservationProgram:
 
     def init_time_start(self):
         # TODO Check for moon !!
-        year = random.choice([i + 10 for i in range(0, 24)])
+        year = random.choice([i + 10 for i in range(0, 14)])
         month = random.choice([i + 1 for i in range(11)])
         day = random.choice([i + 1 for i in range(28)])
         date = f"20{year}-{str(month).zfill(2)}-{str(day).zfill(2)}T01:00:00Z"
+        time = Time(date, format='isot')
+        sunset = self.observatory.sun_set_time(time).mjd
+        end_time = sunset + self.duration/24
+        print(type(sunset))
 
-        sunset = self.observatory.sun_set_time(Time(date)).mjd
-        return sunset
+        if type(sunset) == np.ma.core.MaskedArray:
+           sunset, end_time = self.init_time_start()
+
+        return sunset, end_time
 
     def init_slew(self):
         slew_expr = self.config.getfloat('slew', 'slew_expr')
@@ -146,15 +150,14 @@ class ObservationProgram:
         exposure = {}
         exposure['seeing'] = self.seeing
         exposure['clouds'] = self.clouds
-
-        exposure['lst'] = self.observatory.local_sidereal_time(time,
-                                                               'mean').to_value(
-            ANGLE_UNIT)
+        try:
+            exposure['lst'] = self.observatory.local_sidereal_time(time,'mean').to_value(ANGLE_UNIT)
+        except TypeError:
+            exposure['lst'] = self.state['lst']
 
         current_coords = SkyCoord(
             ra=obs['ra']*u.degree, dec=obs['decl']*u.degree
         )
-
         hzcrds = self.trans_to_altaz(time, current_coords)
         exposure['az'] = hzcrds.az.to_value(ANGLE_UNIT)
         exposure['alt'] = hzcrds.alt.to_value(ANGLE_UNIT)
@@ -279,7 +282,6 @@ class ObservationProgram:
         slew_time = self.calculate_slew(updated_coords, band)
         self.mjd += slew_time
 
-
     def update_observation(self, ra=None, decl=None, band=None,
                            exposure_time=None, reward=None):
         # Updates the observation based on input. Any parameters not given
@@ -301,3 +303,7 @@ class ObservationProgram:
         self.state = self.exposures()
 
 
+if __name__=="__main__":
+    obs_config_path = os.path.abspath("train_configs"
+                                      "/default_obsprog.conf")
+    ObservationProgram(obs_config_path, duration=1)

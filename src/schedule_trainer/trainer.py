@@ -42,20 +42,22 @@ def arguments():
 def make_agent(env, env_config):
 
     agent_config = es.DEFAULT_CONFIG.copy()
-    agent_config["log_level"] = "IGNORE"
     agent_config["env_config"] = env_config
-    agent_config['num_workers'] = 1
+    agent_config['num_workers'] = 8
+    agent_config['episodes_per_batch'] = 10
+    agent_config["evaluation_duration"] = 10
+    agent_config['recreate_failed_workers'] = True
     agent = es.ESTrainer(config=agent_config, env=env)
     return agent
 
 
 if __name__ == "__main__":
+
     args = arguments()
     ray.init()
 
     agent = make_agent(RLEnv, {"scheduler_config": args.schedule_config,
                                "obsprog_config": args.obsprog_config})
-
 
     checkpoints_outpath = f"{args.out_path}/checkpoints/"
     if not os.path.exists(checkpoints_outpath):
