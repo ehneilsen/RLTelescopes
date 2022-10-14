@@ -17,8 +17,6 @@ import pandas as pd
 import warnings
 warnings.filterwarnings("ignore")
 
-sys.path.append("../src")
-
 from rl_scheduler import RLEnv
 
 scheduler_config_path = os.path.abspath("train_configs"
@@ -34,7 +32,7 @@ def arguments():
                       default=scheduler_config_path)
     args.add_argument("-i", "--iterations", type=int, default=80)
     args.add_argument("-o", "--out_path", type=str, default=out_path)
-    args.add_argument("-c", "--checkpoint", type=int, default=10)
+    args.add_argument("-c", "--checkpoint", type=int, default=1)
 
     return args.parse_args()
 
@@ -43,7 +41,7 @@ def make_agent(env, env_config):
 
     agent_config = es.DEFAULT_CONFIG.copy()
     agent_config["env_config"] = env_config
-    agent_config['num_workers'] = 8
+    agent_config['num_workers'] = 20
     agent_config['episodes_per_batch'] = 10
     agent_config["evaluation_duration"] = 10
     agent_config['recreate_failed_workers'] = True
@@ -64,7 +62,8 @@ if __name__ == "__main__":
         os.makedirs(checkpoints_outpath)
 
     history = {}
-    print(f"Beginning training for {args.iterations} iterations")
+    print(f"Beginning training for {args.iterations} iterations, saving every {args.checkpoint} "
+          f"iterations")
     for i in tqdm.trange(args.iterations):
         # Training loop
 

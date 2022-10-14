@@ -106,7 +106,6 @@ class ObservationProgram:
         time = Time(date, format='isot')
         sunset = self.observatory.sun_set_time(time).mjd
         end_time = sunset + self.duration/24
-        print(type(sunset))
 
         if type(sunset) == np.ma.core.MaskedArray:
            sunset, end_time = self.init_time_start()

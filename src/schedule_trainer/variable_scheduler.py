@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas as pd
 from tqdm import tqdm
-from src.schedule_trainer.scheduler import Scheduler
+from scheduler import Scheduler
 
 
 class VariableScheduler(Scheduler):

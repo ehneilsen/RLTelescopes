@@ -3,7 +3,7 @@ Simple scheduler that just selects the next event with the lowest slew
 
 """
 
-from src.schedule_trainer.scheduler import Scheduler
+from scheduler import Scheduler
 import pandas as pd
 from tqdm import tqdm
 
