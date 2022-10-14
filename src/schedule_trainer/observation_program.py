@@ -281,6 +281,18 @@ class ObservationProgram:
         slew_time = self.calculate_slew(updated_coords, band)
         self.mjd += slew_time
 
+        if not self.check_nighttime():
+            self.advance_to_nighttime()
+
+    def check_nighttime(self):
+        time = Time(self.mjd, format='mjd')
+        is_night = self.observatory.is_night(time)
+        return is_night
+
+    def advance_to_nighttime(self):
+        time = Time(self.mjd, format='mjd')
+        self.mjd = self.observatory.sun_set_time(time, which='next').mjd
+
     def update_observation(self, ra=None, decl=None, band=None,
                            exposure_time=None, reward=None):
         # Updates the observation based on input. Any parameters not given
