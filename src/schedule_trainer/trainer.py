@@ -68,9 +68,7 @@ if __name__ == "__main__":
         # Training loop
 
         step_history = agent.train()
-
-        if i-1 % args.checkpoint == 0:
-            agent.save(checkpoints_outpath)
+        agent.save(checkpoints_outpath)
 
         history[i] = step_history
         pd.DataFrame(history).T.to_csv(f"{args.out_path}/history.csv")
