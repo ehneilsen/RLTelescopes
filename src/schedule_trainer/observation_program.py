@@ -285,12 +285,12 @@ class ObservationProgram:
             self.advance_to_nighttime()
 
     def check_nighttime(self):
-        time = Time(self.mjd, format='mjd')
+        time = Time(self.mjd * u.day, format='mjd')
         is_night = self.observatory.is_night(time)
         return is_night
 
     def advance_to_nighttime(self):
-        time = Time(self.mjd, format='mjd')
+        time = Time(self.mjd * u.day, format='mjd')
         self.mjd = self.observatory.sun_set_time(time, which='next').mjd
 
     def update_observation(self, ra=None, decl=None, band=None,
