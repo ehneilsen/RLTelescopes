@@ -23,7 +23,7 @@ scheduler_config_path = os.path.abspath("train_configs"
                                         "/default_schedule.conf")
 obs_config_path = os.path.abspath("train_configs"
                               "/default_obsprog.conf")
-out_path = os.path.abspath("../../results/test_dir")
+out_path = os.path.abspath("../results/baseline")
 
 def arguments():
     args = argparse.ArgumentParser()

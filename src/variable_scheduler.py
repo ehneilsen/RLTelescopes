@@ -10,6 +10,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from scheduler import Scheduler
+import os
+import argparse
 
 
 class VariableScheduler(Scheduler):
@@ -70,3 +72,22 @@ class VariableScheduler(Scheduler):
             action.pop("mjd")
 
         return action
+
+
+if __name__ == "__main__":
+    scheduler_config_path = os.path.abspath("train_configs"
+                                            "/default_schedule.conf")
+    obs_config_path = os.path.abspath("train_configs"
+                                      "/default_obsprog.conf")
+    out_path = os.path.abspath("../results/variable_default")
+
+    args = argparse.ArgumentParser()
+    args.add_argument("--obsprog_config", type=str, default=obs_config_path)
+    args.add_argument("--schedule_config", type=str,
+                      default=scheduler_config_path)
+    args.add_argument("-o", "--out_path", type=str, default=out_path)
+    a = args.parse_args()
+
+    scheduler = VariableScheduler(a.schedule_config, a.obsprog_config)
+    scheduler.update()
+    scheduler.save(a.out_path)

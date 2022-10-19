@@ -18,7 +18,6 @@ class RLScheduler(Scheduler):
 
     def update(self, nn_weights):
         ## Rolling out a schedule with given weights
-        self.obsprog.reset()
         length = self.config.getfloat("schedule", "length")
 
         action = self.calculate_action(action=nn_weights)
