@@ -62,7 +62,7 @@ class Scheduler:
                                                         "exposure_time")
         return actions
 
-    def update(self):
+    def update(self, start_date, end_date):
         raise NotImplementedError
 
     def feed_action(self, action):
@@ -114,6 +114,7 @@ class Scheduler:
 
         mjd = observation['mjd']
 
+
         # Airmass limits
         ha_change = 2 * np.pi * (mjd - observation['mjd']) * 24 / 23.9344696
         ha_change = ha_change * RAD
@@ -134,7 +135,6 @@ class Scheduler:
 
     def calculate_action(self, **action_params):
         raise NotImplementedError
-
 
     def update_schedule(self, action, reward):
         action["reward"] = reward

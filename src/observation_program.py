@@ -253,8 +253,7 @@ class ObservationProgram:
         if band != self.band:
             slew_time += self.filter_change_time
 
-        slew_time += 20 # Wait 20 seconds
-        slew = slew_time / (60 * 24)  # Convert to days
+        slew = slew_time / (60 * 60 * 24)  # Convert to days
         return slew
 
     def exposures(self):
@@ -280,6 +279,7 @@ class ObservationProgram:
 
         slew_time = self.calculate_slew(updated_coords, band)
         self.mjd += slew_time
+        self.mjd += self.exposure_time/(60*60*24)
 
         if not self.check_nighttime():
             self.advance_to_nighttime()

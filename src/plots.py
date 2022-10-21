@@ -107,6 +107,7 @@ if __name__ == "__main__":
 
     from observation_program import ObservationProgram
 
+
     args = argparse.ArgumentParser()
     args.add_argument("--schedule_path", type=str, default="../results/test_dir/schedule.csv")
     args.add_argument("--obsprog_config", type=str, default="./train_configs/default_obsprog.conf")

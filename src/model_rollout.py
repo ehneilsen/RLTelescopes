@@ -76,7 +76,6 @@ class ModelRollout:
             plt.ylabel(name)
             plt.savefig(f"{self.experiment_path}/{name.lower().replace(' ', '_')}_per_step.png")
 
-
     def load_model(self, checkpoint):
         model_path, history_path = self.get_model_path(checkpoint)
         self.plot_history(history_path)
@@ -145,8 +144,8 @@ if __name__ == "__main__":
     args.add_argument("--obs_config_path", default=os.path.abspath("./train_configs"
                                       "/default_obsprog.conf"))
 
-    args.add_argument("--start_date", default="2018-09-16T01:00:00Z")
-    args.add_argument("--end_date", default="2018-09-17T01:00:00Z")
+    args.add_argument("--start_date", default="2021-09-08T01:00:00Z")
+    args.add_argument("--end_date", default="2021-09-10T01:00:00Z")
 
     a = args.parse_args()
 

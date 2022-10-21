@@ -5,6 +5,7 @@ based on the best choices at any given time
 
 """
 import astropy.units as u
+
 import numpy as np
 
 import pandas as pd
@@ -13,27 +14,34 @@ from scheduler import Scheduler
 import os
 import argparse
 
+from astropy.time import Time
+
 
 class VariableScheduler(Scheduler):
     def __init__(self, config, obsprog):
         super().__init__(config, obsprog)
 
-    def update(self):
+    def update(self, start_date, end_date):
         self.obsprog.reset()
-        length = self.config.getfloat("schedule", "length")
-        n_steps = int((length*60*60)/self.config.getfloat("actions",
-                                                       "exposure_time"))+1
 
-        for _, _ in zip(range(n_steps), tqdm(range(n_steps))):
+        start_time = Time(start_date, format='isot').mjd
+        end_time = Time(end_date, format='isot').mjd
+
+        self.obsprog.reset()
+
+        self.obsprog.mjd = start_time
+        self.obsprog.start_time, self.obsprog.end_time = start_time, end_time
+
+        done = False
+        while not done:
             original_time = str(self.obsprog.mjd)
             action = self.calculate_action()
             self.feed_action(action)
 
-            assert str(self.obsprog.mjd) != original_time
-
             reward = action['reward']
             action['mjd'] = self.obsprog.mjd
             self.update_schedule(action, reward)
+            done = self.check_endtime(action)
 
     @staticmethod
     def quality(new_obs):
@@ -62,6 +70,7 @@ class VariableScheduler(Scheduler):
 
         if len(valid_actions) == 0:
             action = self.obsprog.obs
+            action['reward'] = self.invalid_reward
 
         else:
             action = valid_actions[
@@ -85,9 +94,12 @@ if __name__ == "__main__":
     args.add_argument("--obsprog_config", type=str, default=obs_config_path)
     args.add_argument("--schedule_config", type=str,
                       default=scheduler_config_path)
+    args.add_argument("--start_date", default="2021-09-08T01:00:00Z")
+    args.add_argument("--end_date", default="2021-09-10T01:00:00Z")
+
     args.add_argument("-o", "--out_path", type=str, default=out_path)
     a = args.parse_args()
 
     scheduler = VariableScheduler(a.schedule_config, a.obsprog_config)
-    scheduler.update()
+    scheduler.update(a.start_date, a.end_date)
     scheduler.save(a.out_path)

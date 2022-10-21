@@ -54,8 +54,10 @@ class RLScheduler(Scheduler):
         nn_action = kwargs["action"]
         valid_actions = self.action_weights(nn_action)
 
+        # *YOU*
         if len(valid_actions) == 0:
             action = self.obsprog.obs
+            action['reward'] = self.invalid_reward
 
         else:
             action = valid_actions[

@@ -23,7 +23,7 @@ scheduler_config_path = os.path.abspath("train_configs"
                                         "/default_schedule.conf")
 obs_config_path = os.path.abspath("train_configs"
                               "/default_obsprog.conf")
-out_path = os.path.abspath("../results/baseline")
+out_path = os.path.abspath("../results/increased_penalty")
 
 def arguments():
     args = argparse.ArgumentParser()
@@ -42,8 +42,8 @@ def make_agent(env, env_config):
     agent_config = es.DEFAULT_CONFIG.copy()
     agent_config["env_config"] = env_config
     agent_config['num_workers'] = 20
-    agent_config['episodes_per_batch'] = 10
-    agent_config["evaluation_duration"] = 10
+    # agent_config['episodes_per_batch'] = 10
+    # agent_config["evaluation_duration"] = 10
     agent_config['recreate_failed_workers'] = True
     agent = es.ESTrainer(config=agent_config, env=env)
     return agent
