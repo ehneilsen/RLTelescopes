@@ -32,7 +32,6 @@ def arguments():
                       default=scheduler_config_path)
     args.add_argument("-i", "--iterations", type=int, default=80)
     args.add_argument("-o", "--out_path", type=str, default=out_path)
-    args.add_argument("-c", "--checkpoint", type=int, default=1)
 
     return args.parse_args()
 
@@ -62,8 +61,7 @@ if __name__ == "__main__":
         os.makedirs(checkpoints_outpath)
 
     history = {}
-    print(f"Beginning training for {args.iterations} iterations, saving every {args.checkpoint} "
-          f"iterations")
+    print(f"Beginning training for {args.iterations} iterations")
     for i in tqdm.trange(args.iterations):
         # Training loop
 

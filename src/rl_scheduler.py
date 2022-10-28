@@ -9,6 +9,7 @@ import gym
 from functools import cached_property
 import numpy as np
 import pandas as pd
+import ast
 from tqdm import tqdm
 from collections import OrderedDict
 
@@ -16,10 +17,17 @@ class RLScheduler(Scheduler):
     def __init__(self, config, obsprog_config):
         super().__init__(config, obsprog_config)
 
-    def update(self, nn_weights):
-        ## Rolling out a schedule with given weights
-        length = self.config.getfloat("schedule", "length")
+        if self.config.has_option("schedule", "weights"):
+            self.initial_weights = ast.literal_eval(self.config.get("schedule", "weights"))
+        else:
+            self.initial_weights ={"slew": 1, "ha": 1, "airmass": 1, "moon_angle": 1}
 
+        if self.config.has_option("schedule", "powers"):
+            self.powers = self.config.getboolean("schedule", "powers")
+        else:
+            self.powers = {"slew": 1, "ha": 1, "airmass": 1, "moon_angle": 1}
+
+    def update(self, nn_weights):
         action = self.calculate_action(action=nn_weights)
         self.feed_action(action)
 
@@ -32,7 +40,12 @@ class RLScheduler(Scheduler):
         ha = nn_action["weight_ha"]*new_obs["ha"]
         airmass = nn_action["weight_airmass"]*new_obs["airmass"]
         moon = nn_action["weight_moon_angle"]*new_obs["moon_angle"]
-        obs_quality = slew + ha + airmass + moon
+
+        obs_quality = self.initial_weights["slew"]*slew**self.powers["slew"] \
+                      + self.initial_weights["ha"]*ha**self.powers["ha"]\
+                      + self.initial_weights["airmass"]*airmass**self.powers["airmass"] \
+                      + self.initial_weights["moon_angle"]*moon**self.powers["moon_angle"]
+
         return obs_quality
 
     def action_weights(self, nn_action):
@@ -65,9 +78,10 @@ class RLScheduler(Scheduler):
             ].to_dict("records")[0]
 
         action['mjd'] = self.obsprog.mjd
-        action['reward'] = self.reward(
-            self.obsprog.calculate_exposures(action)
-        )
+        if "reward" not in action.keys():
+            action['reward'] = self.reward(
+                self.obsprog.calculate_exposures(action)
+            )
 
         if "mjd" in action.keys():
             action.pop("mjd")
