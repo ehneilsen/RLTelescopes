@@ -13,6 +13,7 @@ import ast
 from tqdm import tqdm
 from collections import OrderedDict
 
+
 class RLScheduler(Scheduler):
     def __init__(self, config, obsprog_config):
         super().__init__(config, obsprog_config)
@@ -23,9 +24,18 @@ class RLScheduler(Scheduler):
             self.initial_weights ={"slew": 1, "ha": 1, "airmass": 1, "moon_angle": 1}
 
         if self.config.has_option("schedule", "powers"):
-            self.powers = self.config.getboolean("schedule", "powers")
+            self.powers = ast.literal_eval(self.config.get("schedule", "powers"))
         else:
             self.powers = {"slew": 1, "ha": 1, "airmass": 1, "moon_angle": 1}
+
+        if self.config.has_option("schedule", "min_max"):
+            min_max = self.config.get("schedule", "min_max")
+        else:
+            min_max = "max"
+
+        assert min_max in ["min", "max"], "Parameter 'schedule min_max' must be set to either " \
+                                          "'min' or 'max'"
+        self.selector = min_max
 
     def update(self, nn_weights):
         action = self.calculate_action(action=nn_weights)
@@ -42,7 +52,7 @@ class RLScheduler(Scheduler):
         moon = nn_action["weight_moon_angle"]*new_obs["moon_angle"]
 
         obs_quality = self.initial_weights["slew"]*slew**self.powers["slew"] \
-                      + self.initial_weights["ha"]*ha**self.powers["ha"]\
+                      + self.initial_weights["ha"]*ha**self.powers["ha"] \
                       + self.initial_weights["airmass"]*airmass**self.powers["airmass"] \
                       + self.initial_weights["moon_angle"]*moon**self.powers["moon_angle"]
 
@@ -73,9 +83,14 @@ class RLScheduler(Scheduler):
             action['reward'] = self.invalid_reward
 
         else:
-            action = valid_actions[
-                valid_actions['reward'] == valid_actions['reward'].max()
-            ].to_dict("records")[0]
+            if self.selector == "max":
+                action = valid_actions[
+                    valid_actions['reward'] == valid_actions['reward'].max()
+                ].to_dict("records")[0]
+            else:
+                action = valid_actions[
+                    valid_actions['reward'] == valid_actions['reward'].min()
+                    ].to_dict("records")[0]
 
         action['mjd'] = self.obsprog.mjd
         if "reward" not in action.keys():
@@ -163,4 +178,3 @@ class RLEnv(gym.Env):
                 for obs_var, val in current_obs.items()
             }
         return observation
-
