@@ -11,23 +11,25 @@ import numpy as np
 
 class Plotting:
     def __init__(self, schedule, obsprog, n_sites):
-        self.schedule=schedule
-        self.obsprog=obsprog
+        self.schedule = schedule
+        self.obsprog = obsprog
         self.n_sites = n_sites
 
     def schedule_obs(self):
-        results = {
-            "reward":[],
-            "teff":[]
-        }
-        schedule = pd.DataFrame(self.schedule).to_dict('index')
-        for step in schedule:
-            step = schedule[step]
-            obs = self.obsprog.calculate_exposures(step)
-            results["reward"].append(obs['reward'])
-            results['teff'].append(obs['teff'])
 
-        return results
+        schedule = pd.DataFrame(self.schedule).to_dict('index')
+        observations = []
+        for step in schedule:
+            step_vars = schedule[step]
+            obs = self.obsprog.calculate_exposures(step_vars)
+
+            for key in obs.keys():
+                schedule[step][key] = obs[key]
+
+            observations.append(schedule[step])
+
+        observations = pd.DataFrame(observations)
+        return observations
 
     def schedule_metrics(self):
         rewards = self.schedule_obs()
@@ -101,6 +103,8 @@ class Plotting:
 
         self.plot_metric_progress(mjd, ra, decl, band, reward, "Reward", save_path)
         self.plot_metric_progress(mjd, ra, decl, band, teff, "T_eff", save_path)
+
+        rewards.to_csv(f"{save_path}/schedule_metrics.csv")
 
 
 if __name__ == "__main__":

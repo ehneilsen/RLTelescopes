@@ -123,6 +123,7 @@ class ModelRollout:
         state = self.step_env.state
         agent = self.load_model(checkpoint)
         done = False
+
         while not done:
             state = self.wrap_state(state)
             state, done = self.step_model(agent, state)

@@ -43,6 +43,8 @@ class RLScheduler(Scheduler):
 
         reward = action['reward']
         action['mjd'] = self.obsprog.mjd
+        for n in nn_weights:
+            action[n] = nn_weights[n]
         self.update_schedule(action, reward)
 
     def quality(self, new_obs, nn_action):
