@@ -10,6 +10,7 @@ import argparse
 import os
 
 import ray.rllib.agents.es as es
+from ray.rllib.models import ModelCatalog
 import ray
 import tqdm
 import pandas as pd
@@ -17,7 +18,8 @@ import pandas as pd
 import warnings
 warnings.filterwarnings("ignore")
 
-from rl_scheduler import RLEnv
+#from rl_scheduler import RLEnv
+from parametric_rl_scheduler import ParametricModel, RLSingleStageEnv
 
 scheduler_config_path = os.path.abspath("train_configs"
                                         "/default_schedule.conf")
@@ -43,6 +45,9 @@ def make_agent(env, env_config):
     agent_config['num_workers'] = 20
     # agent_config['episodes_per_batch'] = 10
     # agent_config["evaluation_duration"] = 10
+    agent_config["model"] = {
+        "custom_model": "parametric_model"
+    }
     agent_config['recreate_failed_workers'] = True
     agent = es.ESTrainer(config=agent_config, env=env)
     return agent
@@ -53,7 +58,11 @@ if __name__ == "__main__":
     args = arguments()
     ray.init()
 
-    agent = make_agent(RLEnv, {"scheduler_config": args.schedule_config,
+    ModelCatalog.register_custom_model(
+        "parametric_model", ParametricModel
+    )
+
+    agent = make_agent(RLSingleStageEnv, {"scheduler_config": args.schedule_config,
                                "obsprog_config": args.obsprog_config})
 
     checkpoints_outpath = f"{args.out_path}/checkpoints/"
