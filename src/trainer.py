@@ -46,7 +46,8 @@ def make_agent(env, env_config):
     # agent_config['episodes_per_batch'] = 10
     # agent_config["evaluation_duration"] = 10
     agent_config["model"] = {
-        "custom_model": "parametric_model"
+        "custom_model": "parametric_model",
+        "custom_model_config": env_config
     }
     agent_config['recreate_failed_workers'] = True
     agent = es.ESTrainer(config=agent_config, env=env)
