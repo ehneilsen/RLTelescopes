@@ -1,129 +1,127 @@
-This template is designed to give a framework for public distributions of "science" projects. 
-It is a guideline, showing the minimum things recommended to include with your public repository, 
-to make your results easily replicable. 
-It is not exhaustive by any means, nor is everything here strictly required in all cases! 
-Please consider this as a loose list of things considered "nice to have", and as reference material above all. 
 
-# DeepSkies Science Repo Template 
-Include status links to different outside resources, such as build info, paper info, license, etc. 
-You can select your license from the [choose a license page.](https://choosealicense.com/licenses/), and then change the name of the license in the badge and link included. 
-For workflows, change the name of the repo listed in the img.shields link to point to your repo and workflows.
-
-[![status](https://img.shields.io/badge/arXiv-000.000-red)](arxiv link if applicable)
-[![status](https://img.shields.io/badge/PyPi-0.0.0.0-blue)](pypi link if applicable)
 [![status](https://img.shields.io/badge/License-MIT-lightgrey)](MIT or Apache 2.0 or another requires link changed)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/owner/repo/build-repo)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/owner/repo/test-repo?label=test)
 
-Your overview should contain a brief summary of the project, and figures and examples showing input and output. 
+## Summary
+
+It's broken. :<
 
 ## Installation 
-Information about install. 
-We recommend publishing to pypi using a poetry package management system (described below) but we also provide instructions for using python virtual environments and showyourwork with conda integration. 
 
-Example of what your installation instructions should look like: 
+Install is currently only install from source.
+It requires both this repo and the repo [SkyBright](https://github.com/ehneilsen/skybright)
 
-To install with pip: 
-> pip install git+https://github.com/DeepSkies/science_template.git
->
-This will set up a virtual environment, which can b  e run with on mac or linux
-> source venv/bin/activate
->
-Or on windows with 
-> venv\Scripts\activate.bat
+Due to the limitation of rllib, a conda environment is required if running on Mac with an M1 chip, 
+due to a conflict with tensorflow.
 
-Verify installation is functional is all tests are passing
-> pytest
+Required Packages: (install with conda if on Mac, pip works with Linux)
 
-Additionally, include how to install from source (via git clone) and associated setup. 
+\\ Todo -> Different install actions in github
 
-### poetry 
-Poetry is our recommended method of handling a package environment as publishing and building is handled by a toml file that handles all possibly conflicting dependencies. 
-Full docs can be found [here](https://python-poetry.org/docs/basic-usage/).
+```
+python==3.9.13
 
-Install instructions: 
-
-Add poetry to your python install 
-> pip install poetry
-
-Install the pyproject file
-> poetry install 
-
-To add another package to your environment
-> poetry add (package name)
-
-To run within your environment 
->poetry run (file).py
-
-If you wish to start from scratch: 
-> pip install poetry
-> poetry init
-
-### virtual environment
-At the bare minimum, project dependencies must be contained and strictly defined and shared for replication purposes. 
-The easiest way to do this is to use a python virtual environment. 
-Full instructions are found [here.](https://docs.python.org/3/library/venv.html)
-
-To initialize an environment:
-> python3 -m venv /path/to/env
-> 
-To activate it: 
-Linux and Mac: 
-> source venv/bin/activate
-> 
-Windows: 
-> venv\Scripts\activate.bat
-
-And use pip as normal to install packages. 
-
-In order to produce a file to share with your version of dependencies, produce a requirements.txt. 
-This can later be installed in full to a new system using `pip install -r requirements.txt`. 
-Note that this does not manage any versioning conflicts and can very quickly become depreciated. 
-> pip freeze >requirements.txt 
-
-### show your work with conda
-We also supply a ["show your work"](https://github.com/showyourwork/showyourwork) workflow to use with a conda venv which can compile the example tex file in `DeepTemplate-Science/src/tex/ms.tex`
-
-To execute this workflow: 
->showyourwork build
-
-This will build your project and install the conda venv associated with the project (or just compile the document if you haven't been using it) and output the document as a pdf. 
-If you would like to integrate with overleaf to push your work remotely, you can do that by adding the following lines to your showyourwork.yml file
-> 
->   overleaf: 
-> 
->       id: URL identifying your project
->       push:
->           - src/tex/figures
->           - src/tex/output
->       pull:
->           - src/tex/ms.tex
->           - src/tex/bib.bib
-
-And adding the system variables `$OVERLEAF_EMAIL` and `$OVERLEAF_PASSWORD` with your credentials. 
-For more information please see the [showyourwork page on the topic](https://show-your.work/en/latest/overleaf/).
-
-
+attrs==21.4.0
+astroplan==0.8
+astropy==5.2.dev0
+gym==0.21.0
+keras/tensorflow==2.9.0
+numpy==1.23.1
+numexpr==2.8.3
+pandas==1.4.3
+ray==1.13.0
+```
 
 ## Quickstart
-Description of the immediate steps to replicate your results, pointing to a script with cli execution. 
-You can also point to a notebook if your results are highly visual and showing plots in line with code is desired.
+To immediately start training a model and verify your installation, use the command 
+```
+python3 src/trainer.py 
+   --obsprog_config src/train_configs/default_obsprog.conf
+   --schedule_config src/train_configs/default_schedule.conf
+   --iterations 5
+   --out_path results/test_schedule
+```
 
-Example: 
+To evaluate an already generated schedule, use the command 
+```
+python3 src/plotting.py 
+    --schedule_path <Path to schedule csv>
+    --obsprog_config src/train_configs/default_obsprog.conf
+    --n_sites <Number of possible sites for a schedule to have visited> 
+```
 
-To run full model training: 
-> python3 train.py --data /path/to/data/folder
-
-To evaluate a single ""data format of choice""
-> python3 eval.py --data /path/to/data
+Or generate a schedule using a reinforcement learning model (verify the agent is correctly 
+configured beforehand.)
+```
+python3 src/model_rollout.py 
+    --experiment_path <Directory where the trained weights are stored, the program will 
+    automatically pick the latest weight>
+    --scheduler_config_path src/train_configs/default_schedule.conf
+    --obs_config_path src/train_configs/default_obsprog.conf
+    --start_date <Date in YYYY-MM-DDTHH:MM:SSZ>
+    --end_date <Date in YYYY-MM-DDTHH:MM:SSZ>
+```
 
 ## Documentation 
-Please include any further information needed to understand your work. 
-This can include an explanation of different notebooks, basic code diagrams, conceptual explanations, etc. 
-If you have a folder of documentation, summarize it here and point to it. 
 
-## Citation 
-Include a link to your bibtex citation for others to use. 
+All inputs for each file individually can be found by passing -h as a parameter to any file, 
+such as `python3 file.py -h`.
+
+
+This project is split into 3 major parts. 
+
+#### The Observation Program
+
+The observation program is a single file (observation_program.py) which simulates a period of 
+time during which the schedule is executed. It calculates parameters of the night sky as a 
+function fo time and position. A single observation is considered a combination of sky 
+coordinates (right accession, declination), time (in mean julian date), and observation filter 
+(referred to as band). 
+
+To start an instance of the observer, a configuration file is needed. An example can be seen in 
+src/train_configs/default_obsprog.config, but briefly, it requires the position of the ground 
+observatory, specifics of the types of observation it can make, and parameters for the sky 
+simulation required by `skybright`. 
+
+#### The Scheduler 
+                                                                                   
+The scheduler (scheduler.py) is an semi-abstract class containing the methods to automate the 
+generation of sky surveys from a ground position. 
+
+It's main function is that of a driver and recorder for the observation program. It initializes 
+an instance of the observation program to use, and steps through it, selecting the next site to 
+visit based on the 'select_action' function, which is left non-implemented in the abstract class. 
+
+It has a number of children classes: 
+* _Low Airmass Scheduler_ - Selects the next action based pured on what action next in time 
+  sequence has the lowest airmass and is not below the horizon. 
+* _Variable Schedule_ - Selects the next site based on which site at the next observation time 
+  the equation `R = min(slew^3+ ha + 100*(airmass-1)^3` 
+* Sequential Schedule_ - Selects the next site that is the shorted slew distance away. 
+* _RL Schedule_ - Trains an RL Model that selects the weights for a selection equation dependent 
+  on time, such that the selected site is picked via the equation 
+ `R=min(NN_slew*slew + NN_ha*ha + NN_airmass*airmass + NN_moon angle*moon angle)`
+* _Pure RL Schedule_ - Selects a site based on the selection of an RL trained network. The inputs 
+  and specifics of this network can be decided in the schedule parameters file. 
+
+Any generated schedule can be plotted and visualized via the file plotting.py. 
+
+#### The RL Trainer and Evaluator
+
+An RL schedule requires an extra training step to generate. The training runner (training.py) 
+takes the configuration for the observation and the chosen scheduler class (assuming it is RL 
+compatible) and trains it using the environment supplied in the import statements. 
+
+\\ TODO Make the Env and Schedule class a config param
+
+The trainer produces weights saved to the output that can later be used by `model_rollout.
+py` to generate a schedule using those weights at a specific time interval, and then plots 
+visualizations for the output schedule. 
+
+
+A diagram of how these programs interact is given below. 
+![\\Todo Provide alt text](figures/Code Diagram.png)
+
+## Citation
 
 ```
 @article{key , 
@@ -139,4 +137,4 @@ Include a link to your bibtex citation for others to use.
 ```
 
 ## Acknowledgement 
-Include any acknowledgements for research groups, important collaborators not listed as a contributor, institutions, etc. 
+And you <3 
