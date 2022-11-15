@@ -1,5 +1,5 @@
 
-[![status](https://img.shields.io/badge/License-MIT-lightgrey)](MIT or Apache 2.0 or another requires link changed)
+[status](https://img.shields.io/badge/License-MIT-lightgrey)]
 
 ## Summary
 
