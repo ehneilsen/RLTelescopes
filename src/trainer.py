@@ -18,14 +18,13 @@ import pandas as pd
 import warnings
 warnings.filterwarnings("ignore")
 
-#from rl_scheduler import RLEnv
-from parametric_rl_scheduler import ParametricModel, RLSingleStageEnv
+from pure_rl_scheduler import RLEnv
 
 scheduler_config_path = os.path.abspath("train_configs"
-                                        "/default_schedule.conf")
+                                        "/weighted_delve_schedule_rl.config")
 obs_config_path = os.path.abspath("train_configs"
                               "/default_obsprog.conf")
-out_path = os.path.abspath("../results/increased_penalty")
+out_path = os.path.abspath("../results/weighted_delve_rl")
 
 def arguments():
     args = argparse.ArgumentParser()
@@ -42,14 +41,12 @@ def make_agent(env, env_config):
 
     agent_config = es.DEFAULT_CONFIG.copy()
     agent_config["env_config"] = env_config
-    agent_config['num_workers'] = 20
+    agent_config['num_workers'] = 50
     # agent_config['episodes_per_batch'] = 10
     # agent_config["evaluation_duration"] = 10
     agent_config["model"] = {
-        "custom_model": "parametric_model",
-        "custom_model_config": env_config
+        'fcnet_hiddens': []
     }
-    agent_config['recreate_failed_workers'] = True
     agent = es.ESTrainer(config=agent_config, env=env)
     return agent
 
@@ -59,12 +56,11 @@ if __name__ == "__main__":
     args = arguments()
     ray.init()
 
-    ModelCatalog.register_custom_model(
-        "parametric_model", ParametricModel
-    )
-
-    agent = make_agent(RLSingleStageEnv, {"scheduler_config": args.schedule_config,
+    agent = make_agent(RLEnv, {"scheduler_config": args.schedule_config,
                                "obsprog_config": args.obsprog_config})
+
+    policy = agent.get_policy()
+    policy.model.base_model.summary()  # Prints the model summary
 
     checkpoints_outpath = f"{args.out_path}/checkpoints/"
     if not os.path.exists(checkpoints_outpath):

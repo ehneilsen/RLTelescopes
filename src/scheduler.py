@@ -16,6 +16,10 @@ from observation_program import ObservationProgram
 
 class Scheduler:
     def __init__(self, config, obsprog_config):
+        '''
+        :param config: Config path for the schedule itself
+        :param obsprog_config: Config path for the obversation program
+        '''
         assert os.path.exists(config)
         self.config = configparser.ConfigParser()
         self.config.read(config)
@@ -32,6 +36,8 @@ class Scheduler:
 
     def generate_action_table(self):
         # Based on the config params
+        # Generate the number of allowed actions based on the
+            # Parameters of each action allowance
         actions = pd.DataFrame(columns=["ra", 'decl', 'band'])
 
         min_ra = self.config.getfloat("actions", "min_ra")
@@ -51,6 +57,8 @@ class Scheduler:
         decl_range = decl_range if len(decl_range) != 0 else [0]
         bands = bands if len(bands) != 0 else ['g']
 
+        # Produce a row corresponding to each action, which is a combination of all possible
+        # options for each part of the action
         for ra in ra_range:
             for decl in decl_range:
                 for band in bands:
@@ -58,25 +66,32 @@ class Scheduler:
                     new_action = pd.DataFrame(new_action, index=[len(actions)])
                     actions = pd.concat([actions, new_action])
 
+        # Exposure time is constant
         actions["exposure_time"] = self.config.getfloat("actions",
                                                         "exposure_time")
+
+        # TODO Option for just a list of actions
         return actions
 
     def update(self, start_date, end_date):
+        # Generate a schedule that sits between these two times
         raise NotImplementedError
 
     def feed_action(self, action):
+        # Apply the action to the observation prog and update the state
         self.obsprog.update_observation(**action)
         new_observation = self.obsprog.state
         return new_observation
 
     def save(self, outpath):
+        # Save the current schedule
         if not os.path.exists(outpath):
             os.makedirs(outpath)
         schedule_name = f"{outpath.rstrip('/')}/schedule.csv"
         self.schedule.to_csv(schedule_name)
 
     def reward(self, observation):
+        # Get the reward for the given action
         if not self.invalid_action(observation):
             reward = self.invalid_reward
         else:
@@ -92,6 +107,7 @@ class Scheduler:
         return math.radians(degrees)
 
     def invalid_action(self, observation):
+        # Verify an action is valid under the given constraints
         RAD = u.rad
 
         airmass_limit = self.config.getfloat("constraints", "airmass_limit")
@@ -114,7 +130,6 @@ class Scheduler:
 
         mjd = observation['mjd']
 
-
         # Airmass limits
         ha_change = 2 * np.pi * (mjd - observation['mjd']) * 24 / 23.9344696
         ha_change = ha_change * RAD
@@ -134,14 +149,18 @@ class Scheduler:
         return invalid
 
     def calculate_action(self, **action_params):
+        # Decide the next action. Implemented in children classes
         raise NotImplementedError
 
     def update_schedule(self, action, reward):
+        # Add a new row to the schedule
         action["reward"] = reward
         new_action = pd.DataFrame(action, index=[len(self.schedule)])
         self.schedule = pd.concat([self.schedule, new_action])
 
     def check_endtime(self, action):
+        # Apply an end condition that verifies that the schedule is equal to the length specified
+        # in the config
         done = False
         length = self.config.getfloat("schedule", "length")
         end_time = self.obsprog.start_time + length/24

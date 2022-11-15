@@ -31,24 +31,23 @@ class Plotting:
         observations = pd.DataFrame(observations)
         return observations
 
-    def schedule_metrics(self):
-        rewards = self.schedule_obs()
-        mean_teff = pd.Series(rewards['teff']).mean()
-        max_teff = pd.Series(rewards['teff']).max()
-        std_teff = pd.Series(rewards['std']).max()
-        total_reward = pd.Series(rewards['reward']).sum()
+    def schedule_metrics(self, schedule_states):
+        mean_teff = pd.Series(schedule_states['teff']).mean()
+        max_teff = pd.Series(schedule_states['teff']).max()
+        std_teff = pd.Series(schedule_states['teff']).std()
+        sum_teff = pd.Series(schedule_states['teff']).sum()
+        total_reward = pd.Series(schedule_states['reward']).sum()
 
-        grouping = self.schedule.groupby(["ra", 'decl', 'band']).index
-        coverage = len(grouping.unique())/self.n_sites
-        uniformity = grouping.std()
+        grouping = self.schedule.groupby(["ra", 'decl', 'band'])
+        coverage = len(grouping.groups)/self.n_sites
 
         return {
             "Max Teff": max_teff,
             "Mean Teff": mean_teff,
+            "Total Teff": sum_teff,
             "Std Teff": std_teff,
             "Total Reward": total_reward,
             "Coverage": coverage,
-            "Uniformity": uniformity
         }
 
     def plot_metric_progress(self, mjd, ra, decl, band, metric, metric_name, save_path):
@@ -75,23 +74,11 @@ class Plotting:
         plt.colorbar(f)
         plt.savefig(f"{save_path}/position_{metric_name.lower()}.png")
 
-        # band distibution
-        plt.cla()
-        plt.clf()
-        bands_df = pd.DataFrame({
-            "bands": band,
-            metric_name: metric
-        })
-
-        band_sum = bands_df.groupby("bands").sum()
-        plt.hist([i for i in range(len(band_sum))], band_sum[metric_name].values)
-        plt.xlabel("bands")
-        plt.ylabel(f"Sum {metric_name}")
-        plt.title("Band Distribution")
-        plt.savefig(f"{save_path}/band_distribution_{metric_name.lower()}.png")
 
     def __call__(self, save_path):
         rewards = self.schedule_obs()
+        print(self.schedule_metrics(rewards))
+        metrics = pd.DataFrame(self.schedule_metrics(rewards), index=[0])
 
         # Metrics
         reward, teff = rewards['reward'], rewards['teff']
@@ -104,7 +91,9 @@ class Plotting:
         self.plot_metric_progress(mjd, ra, decl, band, reward, "Reward", save_path)
         self.plot_metric_progress(mjd, ra, decl, band, teff, "T_eff", save_path)
 
-        rewards.to_csv(f"{save_path}/schedule_metrics.csv")
+        rewards.to_csv(f"{save_path}/schedule_states.csv")
+        metrics.to_csv(f"{save_path}/schedule_metrics.csv")
+
 
 
 if __name__ == "__main__":
@@ -112,7 +101,7 @@ if __name__ == "__main__":
     from observation_program import ObservationProgram
 
     args = argparse.ArgumentParser()
-    args.add_argument("--schedule_path", type=str, default="../results/test_dir/schedule.csv")
+    args.add_argument("-s","--schedule_path", type=str, default="../results/test_dir/schedule.csv")
     args.add_argument("--obsprog_config", type=str, default="./train_configs/default_obsprog.conf")
     args.add_argument("--n_sites", type=int, default=10)
     a = args.parse_args()

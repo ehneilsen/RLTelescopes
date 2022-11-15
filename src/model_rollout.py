@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import argparse
 import json
-
+from plots import Plotting
 
 class ModelRollout:
     def __init__(self, experiment_path, scheduler, environment, env_config):
@@ -87,7 +87,11 @@ class ModelRollout:
             agent_config['episodes_per_batch'] = 10
             agent_config["evaluation_duration"] = 10
             agent_config['recreate_failed_workers'] = False
+            agent_config["model"] = {
+                'fcnet_hiddens': []
+            }
             agent = es.ESTrainer(config=agent_config, env=self.environment)
+
 
             return agent
 
@@ -97,9 +101,15 @@ class ModelRollout:
 
     def step_model(self, agent, previous_state):
         action_weights = agent.compute_single_action(previous_state)
-        self.scheduler.update(action_weights)
-        state = self.scheduler.obsprog.state
-        done = self.scheduler.check_endtime(self.scheduler.obsprog.obs)
+
+        try:
+            self.scheduler.update(action_weights)
+            state = self.scheduler.obsprog.state
+            done = self.scheduler.check_endtime(self.scheduler.obsprog.obs)
+
+        except (TypeError, NotImplementedError):
+            state, _, done, _ = self.step_env.step(action_weights)
+
         return state, done
 
     def wrap_state(self, state):
@@ -118,28 +128,36 @@ class ModelRollout:
         self.step_env.start_time, self.step_env.end_time = start_time, end_time
 
         self.step_env.obs = self.step_env.scheduler.obsprog.observation()
-        self.step_env.state = self.step_env.scheduler.obsprog.exposures()
+        self.step_env.state = self.step_env.state()
 
         state = self.step_env.state
         agent = self.load_model(checkpoint)
         done = False
 
         while not done:
-            state = self.wrap_state(state)
+            #state = self.wrap_state(state)
             state, done = self.step_model(agent, state)
 
         if save:
+            if len(self.scheduler.schedule)==0:
+                self.scheduler.schedule = self.step_env.scheduler.schedule
             self.scheduler.save(self.experiment_path)
 
-        return self.get_schedule()
+        return self.step_env.scheduler.schedule
+
+    def __call__(self, start_date, end_date, save=True):
+        schedule = self.generate_schedule(start_date, end_date, save)
+        plotter = Plotting(schedule, self.scheduler.obsprog, len(self.scheduler.actions))
+        plotter(self.experiment_path)
 
 
 if __name__ == "__main__":
 
-    from rl_scheduler import RLScheduler, RLEnv
+    #from rl_scheduler import RLScheduler, RLEnv
+    from pure_rl_scheduler import RLEnv, Scheduler
 
     args = argparse.ArgumentParser()
-    args.add_argument("--experiment_path", default=os.path.abspath("../results/test_dir/"))
+    args.add_argument("-e", "--experiment_path", default=os.path.abspath("../results/test_dir/"))
     args.add_argument("--scheduler_config_path", default=os.path.abspath("./train_configs"
                                             "/default_schedule.conf"))
     args.add_argument("--obs_config_path", default=os.path.abspath("./train_configs"
@@ -150,7 +168,7 @@ if __name__ == "__main__":
 
     a = args.parse_args()
 
-    scheduler = RLScheduler(a.scheduler_config_path, a.obs_config_path)
+    scheduler = Scheduler(a.scheduler_config_path, a.obs_config_path)
     rollout = ModelRollout(experiment_path=a.experiment_path,
                                               scheduler=scheduler,
                                               environment=RLEnv,
@@ -159,3 +177,4 @@ if __name__ == "__main__":
                                                   "obsprog_config": a.obs_config_path})
 
     rollout.generate_schedule(a.start_date, a.end_date, save=True)
+
