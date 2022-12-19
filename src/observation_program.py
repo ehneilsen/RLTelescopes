@@ -103,6 +103,7 @@ class ObservationProgram:
         month = random.choice([i + 1 for i in range(11)])
         day = random.choice([i + 1 for i in range(28)])
         date = f"20{year}-{str(month).zfill(2)}-{str(day).zfill(2)}T01:00:00Z"
+
         time = Time(date, format='isot')
         sunset = self.observatory.sun_set_time(time).mjd
         end_time = sunset + self.duration/24

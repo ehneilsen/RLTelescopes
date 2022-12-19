@@ -101,5 +101,6 @@ if __name__ == "__main__":
     a = args.parse_args()
 
     scheduler = VariableScheduler(a.schedule_config, a.obsprog_config)
+
     scheduler.update(a.start_date, a.end_date)
     scheduler.save(a.out_path)
