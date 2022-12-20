@@ -115,7 +115,7 @@ visualizations for the output schedule.
 
 
 A diagram of how these programs interact is given below. 
-![\\Todo Provide alt text](figures/Code Diagram.png)
+![Todo Provide alt text](figures/Code Diagram.png)
 
 ## Citation
 
