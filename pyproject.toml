@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "RLTelescope"
+version = "0.1.0"
+description = "\"Method to generate schedule for ground based telescope observations using Reinforcement Learning\""
+authors = ["voetberg <magpie127@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.11"
+gym = "0.21.0"
+numexpr = "2.8.3"
+astropy = "5.2"
+ray = {extras = ["tune"], version = "^2.2.0"}
+astroplan = "^0.8"
+Cython = "^0.29.32"
+astrotact = {path = "../astrotract/astrotact"}
+skybright = {path = "../astrotract/skybright/skybright"}
+dm-tree = "^0.1.8"
+pandas = "^1.5.2"
+scikit-image = "^0.19.3"
+tqdm = "^4.64.1"
+torch = "^1.13.1"
+lz4 = "^4.0.2"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -9,7 +9,7 @@ import sys
 import argparse
 import os
 
-import ray.rllib.agents.es as es
+import ray.rllib.algorithms.es as es
 from ray.rllib.models import ModelCatalog
 import ray
 import tqdm
@@ -47,7 +47,8 @@ def make_agent(env, env_config):
     agent_config["model"] = {
         'fcnet_hiddens': []
     }
-    agent = es.ESTrainer(config=agent_config, env=env)
+    agent_config["framework"] = 'torch'
+    agent = es.ES(config=agent_config, env=env)
     return agent
 
 
@@ -59,8 +60,6 @@ if __name__ == "__main__":
     agent = make_agent(RLEnv, {"scheduler_config": args.schedule_config,
                                "obsprog_config": args.obsprog_config})
 
-    policy = agent.get_policy()
-    policy.model.base_model.summary()  # Prints the model summary
 
     checkpoints_outpath = f"{args.out_path}/checkpoints/"
     if not os.path.exists(checkpoints_outpath):
