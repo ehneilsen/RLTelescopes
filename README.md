@@ -6,9 +6,13 @@
 It's broken. :<
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## Installation
 #### Install from pip
 Simply run
+=======
+## Installation
+>>>>>>> 42f9fd1 (modified start and end date. Added additional pre-commits)
 =======
 ## Installation
 >>>>>>> 42f9fd1 (modified start and end date. Added additional pre-commits)
@@ -125,9 +129,12 @@ visualizations for the output schedule.
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 A diagram of how these programs interact is given below.
 ![Todo Provide alt text](https://github.com/deepskies/RLTelescopes/blob/main/figures/Code%20Diagram.png)
 =======
+=======
+>>>>>>> 42f9fd1 (modified start and end date. Added additional pre-commits)
 A diagram of how these programs interact is given below.
 ![Todo Provide alt text](figures/Code Diagram.png)
 >>>>>>> 42f9fd1 (modified start and end date. Added additional pre-commits)
