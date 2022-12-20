@@ -31,7 +31,7 @@ class Scheduler:
         self.actions = self.generate_action_table()
         self.invalid_reward = self.config.getfloat("reward", "invalid_reward")
 
-        schedule_cols = ["mjd", "ra", "decl", "band", "exposure_time", "reward"]
+        schedule_cols = ["mjd", "end_mjd", "ra", "decl", "band", "exposure_time", "reward"]
         self.schedule = pd.DataFrame(columns=schedule_cols)
 
     def generate_action_table(self):
@@ -128,10 +128,10 @@ class Scheduler:
         cos_sun_ha_limit = (cos_sun_zd_limit - sin_sun_dec * sin_lat) / (
                     cos_sun_dec * cos_lat)
 
-        mjd = observation['mjd']
+        start_mjd = observation['mjd']
 
         # Airmass limits
-        ha_change = 2 * np.pi * (mjd - observation['mjd']) * 24 / 23.9344696
+        ha_change = 2 * np.pi * (start_mjd - observation['mjd']) * 24 / 23.9344696
         ha_change = ha_change * RAD
         ha = observation['ha'] * RAD + ha_change
         in_airmass_limit = np.cos(ha) > cos_ha_limit
@@ -164,6 +164,6 @@ class Scheduler:
         done = False
         length = self.config.getfloat("schedule", "length")
         end_time = self.obsprog.start_time + length/24
-        if action["mjd"]>=end_time:
+        if action["end_mjd"]>=end_time:
             done = True
         return done

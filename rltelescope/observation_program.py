@@ -31,7 +31,7 @@ class ObservationProgram:
         self.config.read(config_path)
         self.duration = duration
         self.observatory = self.init_observatory()
-        self.slew_rate = self.init_slew()
+        self.slew_rate_deg_sec = self.init_slew()
         self.calc_sky = skybright.MoonSkyModel(self.config)
         self.set_optics()
 
@@ -57,22 +57,23 @@ class ObservationProgram:
                 'Y': 1000.0
             }
 
-        self.wait_time = 300
+        self.wait_time_seconds = 300
 
         try:
-            self.filter_change_time = self.config.getfloat("bands",
+            self.filter_change_time_seconds = self.config.getfloat("bands",
                                                    "filter_change_rate")
         except KeyError:
-            self.filter_change_time = 0.0
+            self.filter_change_time_seconds = 0.0
 
 
     def observation(self):
         return {
             "mjd": self.mjd,
+            "end_mjd": self.end_mjd,
             "decl":self.decl,
             "ra": self.ra,
             "band": self.band,
-            "exposure_time": self.exposure_time
+            "exposure_time_days": self.exposure_time_days
         }
 
     def reset(self):
@@ -81,10 +82,12 @@ class ObservationProgram:
         self.decl = 0
         self.ra = 0
         self.band = 'g'
-        self.exposure_time = 300
+        self.exposure_time_days = 300/(60*60*24)
+        self.end_mjd = self.start_time + self.exposure_time_days
 
         self.obs = self.observation()
         self.state = self.exposures()
+
 
     def init_observatory(self):
         lat = self.config.getfloat('Observatory Position', 'latitude')
@@ -228,7 +231,7 @@ class ObservationProgram:
         exposure['tau'] = 0.0 if ~np.isfinite(exposure['tau']) else \
             exposure['tau']
 
-        exposure['teff'] = exposure['tau'] * obs['exposure_time']
+        exposure['teff'] = exposure['tau'] * obs['exposure_time_days']
 
         for key in obs:
             if key not in ['band']:
@@ -246,16 +249,16 @@ class ObservationProgram:
         original_coords = self.current_coord()
 
         coord_sep = original_coords.separation(new_coords)
-        slew_time = self.slew_rate * coord_sep / u.degree
+        slew_time_seconds = self.slew_rate_deg_sec * coord_sep / u.degree
 
         if original_coords==new_coords:
-            slew_time = self.wait_time
+            slew_time_seconds = self.wait_time_seconds
 
         if band != self.band:
-            slew_time += self.filter_change_time
+            slew_time_seconds += self.filter_change_time
 
-        slew = slew_time / (60 * 60 * 24)  # Convert to days
-        return slew
+        slew_time_days = slew_time_seconds / (60 * 60 * 24)  # Convert to days
+        return slew_time_days
 
     def exposures(self):
         exposure = self.calculate_exposures(self.obs)
@@ -263,6 +266,9 @@ class ObservationProgram:
         return exposure
 
     def update_mjd(self, ra, decl, band):
+
+        if not self.check_nighttime():
+            self.advance_to_nighttime()
 
         original_coords = self.current_coord()
 
@@ -278,12 +284,10 @@ class ObservationProgram:
         else:
             updated_coords = SkyCoord(ra=ra * u.degree, dec=decl * u.degree)
 
-        slew_time = self.calculate_slew(updated_coords, band)
-        self.mjd += slew_time
-        self.mjd += self.exposure_time/(60*60*24)
+        slew_time_days = self.calculate_slew(updated_coords, band)
 
-        if not self.check_nighttime():
-            self.advance_to_nighttime()
+        self.mjd = self.end_mjd
+        self.end_mjd = self.mjd + self.exposure_time_days + slew_time_days
 
     def check_nighttime(self):
         time = Time(self.mjd * u.day, format='mjd')
@@ -293,9 +297,10 @@ class ObservationProgram:
     def advance_to_nighttime(self):
         time = Time(self.mjd * u.day, format='mjd')
         self.mjd = self.observatory.sun_set_time(time, which='next').mjd
+        self.end_mjd = self.mjd + self.exposure_time_days
 
     def update_observation(self, ra=None, decl=None, band=None,
-                           exposure_time=None, reward=None):
+                           exposure_time_days=None, reward=None):
         # Updates the observation based on input. Any parameters not given
         # are held constant
 
@@ -308,14 +313,14 @@ class ObservationProgram:
         self.ra = ra if ra is not None else self.ra
         self.decl = decl if decl is not None else self.decl
         self.band = band if band is not None else self.band
-        self.exposure_time = exposure_time if exposure_time is not None else \
-            self.exposure_time
+        self.exposure_time_days = exposure_time_days if exposure_time_days is not None else \
+            self.exposure_time_days
 
         self.obs = self.observation()
         self.state = self.exposures()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     obs_config_path = os.path.abspath("train_configs"
                                       "/default_obsprog.conf")
     ObservationProgram(obs_config_path, duration=1)
