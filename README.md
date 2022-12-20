@@ -8,28 +8,24 @@ It's broken. :<
 ## Installation 
 
 Install is currently only install from source.
-It requires both this repo and the repo [SkyBright](https://github.com/ehneilsen/skybright)
+It requires both this repo and the repo [SkyBright](https://github.com/ehneilsen/skybright).
+This is included in the pyproject.toml
 
-Due to the limitation of rllib, a conda environment is required if running on Mac with an M1 chip, 
-due to a conflict with tensorflow.
+Due to the limitation of rllib, a conda environment is required if running on Mac with an M1 chip if you wish to use tensorflow/keras.
+For this reason, the RL Trainer uses Torch as a backend. 
 
-Required Packages: (install with conda if on Mac, pip works with Linux)
+The project is built with [poetry](https://python-poetry.org/), and this is the recommended install method.
+All dependencies are resolved in the `poetry.lock` file, so you can install immediately from the command
 
-\\ Todo -> Different install actions in github
+`poetry install`
 
-```
-python==3.9.13
+Assuming you have poetry installed on your base environment. 
+This will use lock file to install all the correct versions. 
+To use the installed environment, use the command `poetry shell` to enter it. 
+The command `exit` will take you out of this environment as it would for any other type of virtual environment. 
 
-attrs==21.4.0
-astroplan==0.8
-astropy==5.2.dev0
-gym==0.21.0
-keras/tensorflow==2.9.0
-numpy==1.23.1
-numexpr==2.8.3
-pandas==1.4.3
-ray==1.13.0
-```
+Otherwise, you can use the `pyproject.toml` with your installer of choice. 
+
 
 ## Quickstart
 To immediately start training a model and verify your installation, use the command 
