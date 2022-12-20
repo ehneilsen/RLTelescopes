@@ -1,13 +1,19 @@
 
-[[status](https://img.shields.io/badge/License-MIT-lightgrey)]
+![status](https://img.shields.io/badge/License-MIT-lightgrey)
 
 ## Summary
 
 It's broken. :<
 
 ## Installation 
+#### Install from pip
+Simply run 
 
-Install is currently only install from source.
+`pip install git+https://github.com/deepskies/RLTelescopes@main`
+
+This will install the project with al its requirements. 
+
+#### Install from source
 It requires both this repo and the repo [SkyBright](https://github.com/ehneilsen/skybright).
 This is included in the pyproject.toml
 
@@ -115,7 +121,7 @@ visualizations for the output schedule.
 
 
 A diagram of how these programs interact is given below. 
-![Todo Provide alt text](figures/Code Diagram.png)
+![Todo Provide alt text](https://github.com/deepskies/RLTelescopes/blob/main/figures/Code%20Diagram.png)
 
 ## Citation
 
