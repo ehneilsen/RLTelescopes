@@ -13,8 +13,7 @@ astropy = "5.2"
 ray = {extras = ["tune"], version = "^2.2.0"}
 astroplan = "^0.8"
 Cython = "^0.29.32"
-astrotact = {path = "../astrotract/astrotact"}
-skybright = {path = "../astrotract/skybright/skybright"}
+skybright = {git = "https://github.com/ehneilsen/skybright"}
 dm-tree = "^0.1.8"
 pandas = "^1.5.2"
 scikit-image = "^0.19.3"

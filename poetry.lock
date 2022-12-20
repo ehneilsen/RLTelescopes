@@ -618,7 +618,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 [[package]]
 name = "skybright"
 version = "0.0.3"
-description = "Utility for calculating sky brightness from airglow and moonlight"
+description = ""
 category = "main"
 optional = false
 python-versions = "*"
@@ -630,8 +630,10 @@ numpy = ">=1.11.0"
 palpy = ">=1.8.0"
 
 [package.source]
-type = "directory"
-url = "../astrotract/skybright/skybright"
+type = "git"
+url = "https://github.com/ehneilsen/skybright"
+reference = "master"
+resolved_reference = "b0e2d7e6e25131393ee76ce334ce1df1521e3659"
 
 [[package]]
 name = "tabulate"
@@ -759,7 +761,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "84f5e140a697968fce9b41d788ffc404668975735858a51bdcbde9b6b5ee0a47"
+content-hash = "b3616fac766688b21d27df2dc2f475316104f0a5ef6c3b16ea6968110a6c8289"
 
 [metadata.files]
 aiosignal = [
