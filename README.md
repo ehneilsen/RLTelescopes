@@ -5,17 +5,10 @@
 
 It's broken. :<
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 ## Installation
 #### Install from pip
 Simply run
-=======
-## Installation
->>>>>>> 42f9fd1 (modified start and end date. Added additional pre-commits)
-=======
-## Installation
->>>>>>> 42f9fd1 (modified start and end date. Added additional pre-commits)
 
 `pip install git+https://github.com/deepskies/RLTelescopes@main`
 
