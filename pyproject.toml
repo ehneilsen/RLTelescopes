@@ -6,14 +6,14 @@ authors = ["voetberg <magpie127@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
+Cython = "^0.29.32"
+numpy = "^1.24.0"
 python = ">=3.8,<3.11"
 gym = "0.21.0"
 numexpr = "2.8.3"
 astropy = "5.2"
 ray = {extras = ["tune"], version = "^2.2.0"}
 astroplan = "^0.8"
-Cython = "^0.29.32"
-numpy = "^1.24.0"
 skybright = {git = "https://github.com/ehneilsen/skybright"}
 dm-tree = "^0.1.8"
 pandas = "^1.5.2"
