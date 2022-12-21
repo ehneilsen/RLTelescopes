@@ -23,6 +23,7 @@ MANIFEST
 # Python execution junk
 *.pyc
 __pycache__/
+.mypy_cache/
 
 # Unit test / coverage reports
 htmlcov/
@@ -50,3 +51,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# IDE
+.idea/
+.DS_Store

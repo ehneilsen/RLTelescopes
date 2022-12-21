@@ -28,9 +28,11 @@ class RLSingleStageSchedule(scheduler.Scheduler):
         super().__init__(config, obsprog_config)
 
         if self.config.has_option("schedule", "weights"):
-            self.initial_weights = ast.literal_eval(self.config.get("schedule", "weights"))
+            self.initial_weights = ast.literal_eval(
+                self.config.get("schedule", "weights")
+            )
         else:
-            self.initial_weights ={"slew": 1, "ha": 1, "airmass": 1, "moon_angle": 1}
+            self.initial_weights = {"slew": 1, "ha": 1, "airmass": 1, "moon_angle": 1}
 
         if self.config.has_option("schedule", "powers"):
             self.powers = ast.literal_eval(self.config.get("schedule", "powers"))
@@ -60,13 +62,15 @@ class RLSingleStageSchedule(scheduler.Scheduler):
 
         done = False
         while not done:
-            telescope_action = self.calculate_action(weights=weights, obs=self.obsprog.state)
+            telescope_action = self.calculate_action(
+                weights=weights, obs=self.obsprog.state
+            )
             telescope_action["band"] = "g"
             self.feed_action(telescope_action)
 
-            reward = telescope_action['reward']
+            reward = telescope_action["reward"]
 
-            telescope_action['mjd'] = self.obsprog.mjd
+            telescope_action["mjd"] = self.obsprog.mjd
             self.update_schedule(telescope_action, reward)
             done = self.check_endtime(telescope_action)
 
@@ -77,15 +81,17 @@ class RLSingleStageSchedule(scheduler.Scheduler):
 
     def single_action_quality(self, weights, observation):
 
-        slew = weights["slew"]*observation["slew"]
-        ha = weights["ha"]*observation["ha"]
-        airmass = weights["airmass"]*observation["airmass"]
-        moon = weights["moon_angle"]*observation["moon_angle"]
+        slew = weights["slew"] * observation["slew"]
+        ha = weights["ha"] * observation["ha"]
+        airmass = weights["airmass"] * observation["airmass"]
+        moon = weights["moon_angle"] * observation["moon_angle"]
 
-        obs_quality = self.initial_weights["slew"]*slew**self.powers["slew"] \
-                      + self.initial_weights["ha"]*ha**self.powers["ha"] \
-                      + self.initial_weights["airmass"]*airmass**self.powers["airmass"] \
-                      + self.initial_weights["moon_angle"]*moon**self.powers["moon_angle"]
+        obs_quality = (
+            self.initial_weights["slew"] * slew ** self.powers["slew"]
+            + self.initial_weights["ha"] * ha ** self.powers["ha"]
+            + self.initial_weights["airmass"] * airmass ** self.powers["airmass"]
+            + self.initial_weights["moon_angle"] * moon ** self.powers["moon_angle"]
+        )
 
         return obs_quality
 
@@ -95,29 +101,27 @@ class RLSingleStageSchedule(scheduler.Scheduler):
         allowed = []
         for action in allowed_actions.to_dict("records"):
             quality.append(self.single_action_quality(weights, obs))
-            action['mjd'] = self.obsprog.mjd
-            action['band'] = 'g'
+            action["mjd"] = self.obsprog.mjd
+            action["band"] = "g"
             possible_exposure = self.obsprog.calculate_exposures(action)
             allowed.append(self.invalid_action(possible_exposure))
 
         actions = self.actions.copy()
-        actions['reward'] = pd.Series(quality, dtype=float).fillna(0)
+        actions["reward"] = pd.Series(quality, dtype=float).fillna(0)
         valid_actions = actions[pd.Series(allowed)]
 
         if len(valid_actions) == 0:
             action = self.obsprog.obs
-            action['reward'] = self.invalid_reward
+            action["reward"] = self.invalid_reward
 
         else:
             action = valid_actions[
-                valid_actions['reward'] == valid_actions['reward'].max()
-                ].to_dict("records")[0]
+                valid_actions["reward"] == valid_actions["reward"].max()
+            ].to_dict("records")[0]
 
-        action['mjd'] = self.obsprog.mjd
+        action["mjd"] = self.obsprog.mjd
         if "reward" not in action.keys():
-            action['reward'] = self.reward(
-                self.obsprog.calculate_exposures(action)
-            )
+            action["reward"] = self.reward(self.obsprog.calculate_exposures(action))
 
         if "mjd" in action.keys():
             action.pop("mjd")
@@ -129,8 +133,7 @@ class RLSingleStageEnv(gym.Env):
     def __init__(self, config):
 
         self.scheduler = RLSingleStageSchedule(
-            config=config["scheduler_config"],
-            obsprog_config=config["obsprog_config"]
+            config=config["scheduler_config"], obsprog_config=config["obsprog_config"]
         )
 
         super().__init__()
@@ -144,14 +147,10 @@ class RLSingleStageEnv(gym.Env):
     @cached_property
     def action_space(self):
         space = {
-            "slew":gym.spaces.Box(
-                low=-1, high=1, shape=(1,), dtype=np.float32),
-            "ha":gym.spaces.Box(
-                low=-1, high=1, shape=(1,), dtype=np.float32),
-            "airmass":gym.spaces.Box(
-                low=-1, high=1, shape=(1,), dtype=np.float32),
-            "moon_angle":gym.spaces.Box(
-                low=-1, high=1, shape=(1,), dtype=np.float32)
+            "slew": gym.spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32),
+            "ha": gym.spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32),
+            "airmass": gym.spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32),
+            "moon_angle": gym.spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32),
         }
         action_space = gym.spaces.Dict(space)
         return action_space
@@ -163,29 +162,29 @@ class RLSingleStageEnv(gym.Env):
 
         space = {}
         space["ra"] = gym.spaces.Box(
-                low=self.scheduler.actions.ra.min()-1,
-                high=self.scheduler.actions.ra.max()+1,
-                shape=(1,len_schedule),
-                dtype=np.float32
-            )
+            low=self.scheduler.actions.ra.min() - 1,
+            high=self.scheduler.actions.ra.max() + 1,
+            shape=(1, len_schedule),
+            dtype=np.float32,
+        )
 
         space["decl"] = gym.spaces.Box(
-                low=self.scheduler.actions.decl.min()-1,
-                high=self.scheduler.actions.decl.max()+1,
-                shape=(1,len_schedule),
-                dtype=np.float32
-            )
+            low=self.scheduler.actions.decl.min() - 1,
+            high=self.scheduler.actions.decl.max() + 1,
+            shape=(1, len_schedule),
+            dtype=np.float32,
+        )
 
         space["exposure_time"] = gym.spaces.Box(
-                low=self.scheduler.actions.exposure_time.min()-1,
-                high=self.scheduler.actions.exposure_time.max()+1,
-                shape=(1,len_schedule),
-                dtype=np.float32
-            )
+            low=self.scheduler.actions.exposure_time.min() - 1,
+            high=self.scheduler.actions.exposure_time.max() + 1,
+            shape=(1, len_schedule),
+            dtype=np.float32,
+        )
 
-        space['mjd'] = gym.spaces.Box(
-                low=55165, high=70000, shape=(1,len_schedule), dtype=np.float32
-            )
+        space["mjd"] = gym.spaces.Box(
+            low=55165, high=70000, shape=(1, len_schedule), dtype=np.float32
+        )
         obs_space = gym.spaces.Dict(space)
         return obs_space
 
@@ -210,13 +209,13 @@ class ParametricModel(ray.rllib.models.tf.tf_modelv2.TFModelV2):
             action_space=action_space,
             num_outputs=num_outputs,
             model_config=model_config,
-            name=name
+            name=name,
         )
 
-        self.scheduler = RLSingleStageSchedule(model_config["custom_model_config"][
-                                                   "scheduler_config"],
-                                               model_config["custom_model_config"][
-                                                   "obsprog_config"])
+        self.scheduler = RLSingleStageSchedule(
+            model_config["custom_model_config"]["scheduler_config"],
+            model_config["custom_model_config"]["obsprog_config"],
+        )
         self.model = self.schedule_model()
 
     def schedule_model(self):
@@ -233,26 +232,28 @@ class ParametricModel(ray.rllib.models.tf.tf_modelv2.TFModelV2):
         session = tf.compat.v1.Session()
 
         init_schedule_conditions = input_dict["obs"]
-        ra = init_schedule_conditions['ra']
-        delc = init_schedule_conditions['decl']
+        ra = init_schedule_conditions["ra"]
+        delc = init_schedule_conditions["decl"]
         mjd = init_schedule_conditions["mjd"]
 
-        #input_model = self.model(input_dict['obs_flat'])#.layers[0].weights[0]
+        # input_model = self.model(input_dict['obs_flat'])#.layers[0].weights[0]
         with session as sess:
 
             self.model.compile(loss="mse")
-            #output = self.model(input_dict['obs_flat'])
+            # output = self.model(input_dict['obs_flat'])
             schedule_weights = self.model.layers[-1].weights[0]
             schedule_weights = {
                 key: weight
-                for key, weight
-                in zip(
-                    init_schedule_conditions.keys(),
-                    schedule_weights.eval(session=sess))
+                for key, weight in zip(
+                    init_schedule_conditions.keys(), schedule_weights.eval(session=sess)
+                )
             }
         print(schedule_weights)
         schedule_update = {
-            "weights": schedule_weights, "mjd": mjd, "init_ra": ra,"init_decl": delc
+            "weights": schedule_weights,
+            "mjd": mjd,
+            "init_ra": ra,
+            "init_decl": delc,
         }
         schedule = self.scheduler.update(**schedule_update)
 

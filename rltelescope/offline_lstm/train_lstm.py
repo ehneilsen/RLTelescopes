@@ -9,11 +9,20 @@ import argparse
 
 from data_generator_obsprog import ObservationProgramGenerator
 import sys
+
 sys.path.append("..")
 from observation_program import ObservationProgram
 
+
 class LSTMTrainer:
-    def __init__(self, datagen, val_datagen, input_dim, save_location, target_columns=["ra", "decl"]):
+    def __init__(
+        self,
+        datagen,
+        val_datagen,
+        input_dim,
+        save_location,
+        target_columns=["ra", "decl"],
+    ):
         if not os.path.exists(save_location):
             os.makedirs(save_location)
 
@@ -22,7 +31,9 @@ class LSTMTrainer:
         self.n_input_dimensions = input_dim
 
         self.target_columns = target_columns
-        self.save_path = save_location if save_location[-1] != "/" else save_location[:-1]
+        self.save_path = (
+            save_location if save_location[-1] != "/" else save_location[:-1]
+        )
 
         self.model = self.make_model()
 
@@ -36,7 +47,8 @@ class LSTMTrainer:
 
         model = tf.keras.models.Model(inputs=input_layer, outputs=output_layers)
         model.compile(
-            optimizer="sgd", loss={f"{target}_output": "mse" for target in self.target_columns}
+            optimizer="sgd",
+            loss={f"{target}_output": "mse" for target in self.target_columns},
         )
 
         print(model.summary())
@@ -44,7 +56,8 @@ class LSTMTrainer:
 
     def train_model(self, epochs):
         history = self.model.fit(
-            self.train_data, validation_data=self.val_data, epochs=epochs).history
+            self.train_data, validation_data=self.val_data, epochs=epochs
+        ).history
         return pd.DataFrame(history)
 
     def eval_metrics_plots(self, history):
@@ -81,7 +94,38 @@ if __name__ == "__main__":
 
     args = argparser.parse_args()
 
-    allowed_variables = ["seeing","clouds","lst","az","alt","zd","ha","airmass","sun_ra","sun_decl","sun_az","sun_alt","sun_zd","sun_ha","moon_ra","moon_decl","moon_az","moon_alt","moon_zd","moon_ha","moon_airmass","moon_phase","moon_illu","moon_Vmag","moon_angle","sky_mag","fwhm", "teff","exposure_time", "slew"]
+    allowed_variables = [
+        "seeing",
+        "clouds",
+        "lst",
+        "az",
+        "alt",
+        "zd",
+        "ha",
+        "airmass",
+        "sun_ra",
+        "sun_decl",
+        "sun_az",
+        "sun_alt",
+        "sun_zd",
+        "sun_ha",
+        "moon_ra",
+        "moon_decl",
+        "moon_az",
+        "moon_alt",
+        "moon_zd",
+        "moon_ha",
+        "moon_airmass",
+        "moon_phase",
+        "moon_illu",
+        "moon_Vmag",
+        "moon_angle",
+        "sky_mag",
+        "fwhm",
+        "teff",
+        "exposure_time",
+        "slew",
+    ]
     default_obsprog = "../train_configs/default_obsprog.conf"
     obsprog = ObservationProgram(config_path=default_obsprog, duration=2)
     datagen = ObservationProgramGenerator(obsprog)
@@ -92,5 +136,5 @@ if __name__ == "__main__":
         datagen=train,
         val_datagen=val,
         input_dim=len(allowed_variables),
-        save_location=args.out_path
+        save_location=args.out_path,
     )(args.epochs)

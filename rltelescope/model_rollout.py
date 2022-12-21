@@ -16,6 +16,7 @@ import argparse
 import json
 from plots import Plotting
 
+
 class ModelRollout:
     def __init__(self, experiment_path, scheduler, environment, env_config):
         self.experiment_path = experiment_path
@@ -42,7 +43,7 @@ class ModelRollout:
 
         checkpoints = os.listdir(checkpoint_path)
         checkpoints.sort()
-        if checkpoint == 'latest':
+        if checkpoint == "latest":
             last_checkpoint = checkpoints[-1]
             name = f"checkpoint-{last_checkpoint.split('0')[-1]}"
         else:
@@ -58,23 +59,26 @@ class ModelRollout:
     def plot_history(self, history_path):
         history = pd.read_csv(history_path)
 
-        training_hist = pd.DataFrame([json.loads(js) for js in history['info'].str.replace("'",
-                                                                                          '"')])
-        steps = training_hist['episodes_so_far']
+        training_hist = pd.DataFrame(
+            [json.loads(js) for js in history["info"].str.replace("'", '"')]
+        )
+        steps = training_hist["episodes_so_far"]
         mean_reward = history["episode_reward_mean"]
-        update_ratio = training_hist['update_ratio']
-        grad_norm = training_hist['grad_norm']
-        weight_norm = training_hist['weights_norm']
+        update_ratio = training_hist["update_ratio"]
+        grad_norm = training_hist["grad_norm"]
+        weight_norm = training_hist["weights_norm"]
 
         metrics = [mean_reward, update_ratio, grad_norm, weight_norm]
         names = ["Mean Reward", "Weight Update Ratio", "Gradient Norm", "Weight Norm"]
-        for metric, name in zip(metrics,names):
+        for metric, name in zip(metrics, names):
             plt.cla()
             plt.scatter(steps, metric)
             plt.title(name)
             plt.xlabel("steps")
             plt.ylabel(name)
-            plt.savefig(f"{self.experiment_path}/{name.lower().replace(' ', '_')}_per_step.png")
+            plt.savefig(
+                f"{self.experiment_path}/{name.lower().replace(' ', '_')}_per_step.png"
+            )
 
     def load_model(self, checkpoint):
         model_path, history_path = self.get_model_path(checkpoint)
@@ -83,15 +87,12 @@ class ModelRollout:
         def load_agent():
             agent_config = es.DEFAULT_CONFIG.copy()
             agent_config["env_config"] = self.env_config
-            agent_config['num_workers'] = 18
-            agent_config['episodes_per_batch'] = 10
+            agent_config["num_workers"] = 18
+            agent_config["episodes_per_batch"] = 10
             agent_config["evaluation_duration"] = 10
-            agent_config['recreate_failed_workers'] = False
-            agent_config["model"] = {
-                'fcnet_hiddens': []
-            }
+            agent_config["recreate_failed_workers"] = False
+            agent_config["model"] = {"fcnet_hiddens": []}
             agent = es.ESTrainer(config=agent_config, env=self.environment)
-
 
             return agent
 
@@ -118,9 +119,9 @@ class ModelRollout:
             wrapped_state[key] = np.array([state[key]], dtype=np.float32)
         return wrapped_state
 
-    def generate_schedule(self, start_date, end_date, save=False, checkpoint='latest'):
-        start_time = Time(start_date, format='isot').mjd
-        end_time = Time(end_date, format='isot').mjd
+    def generate_schedule(self, start_date, end_date, save=False, checkpoint="latest"):
+        start_time = Time(start_date, format="isot").mjd
+        end_time = Time(end_date, format="isot").mjd
 
         self.step_env.reset()
 
@@ -135,11 +136,11 @@ class ModelRollout:
         done = False
 
         while not done:
-            #state = self.wrap_state(state)
+            # state = self.wrap_state(state)
             state, done = self.step_model(agent, state)
 
         if save:
-            if len(self.scheduler.schedule)==0:
+            if len(self.scheduler.schedule) == 0:
                 self.scheduler.schedule = self.step_env.scheduler.schedule
             self.scheduler.save(self.experiment_path)
 
@@ -147,21 +148,29 @@ class ModelRollout:
 
     def __call__(self, start_date, end_date, save=True):
         schedule = self.generate_schedule(start_date, end_date, save)
-        plotter = Plotting(schedule, self.scheduler.obsprog, len(self.scheduler.actions))
+        plotter = Plotting(
+            schedule, self.scheduler.obsprog, len(self.scheduler.actions)
+        )
         plotter(self.experiment_path)
 
 
 if __name__ == "__main__":
 
-    #from rl_scheduler import RLScheduler, RLEnv
+    # from rl_scheduler import RLScheduler, RLEnv
     from pure_rl_scheduler import RLEnv, Scheduler
 
     args = argparse.ArgumentParser()
-    args.add_argument("-e", "--experiment_path", default=os.path.abspath("../results/test_dir/"))
-    args.add_argument("--scheduler_config_path", default=os.path.abspath("./train_configs"
-                                            "/default_schedule.conf"))
-    args.add_argument("--obs_config_path", default=os.path.abspath("./train_configs"
-                                      "/default_obsprog.conf"))
+    args.add_argument(
+        "-e", "--experiment_path", default=os.path.abspath("../results/test_dir/")
+    )
+    args.add_argument(
+        "--scheduler_config_path",
+        default=os.path.abspath("./train_configs" "/default_schedule.conf"),
+    )
+    args.add_argument(
+        "--obs_config_path",
+        default=os.path.abspath("./train_configs" "/default_obsprog.conf"),
+    )
 
     args.add_argument("--start_date", default="2021-09-08T01:00:00Z")
     args.add_argument("--end_date", default="2021-09-10T01:00:00Z")
@@ -169,12 +178,14 @@ if __name__ == "__main__":
     a = args.parse_args()
 
     scheduler = Scheduler(a.scheduler_config_path, a.obs_config_path)
-    rollout = ModelRollout(experiment_path=a.experiment_path,
-                                              scheduler=scheduler,
-                                              environment=RLEnv,
-                                              env_config={
-                                                  "scheduler_config": a.scheduler_config_path,
-                                                  "obsprog_config": a.obs_config_path})
+    rollout = ModelRollout(
+        experiment_path=a.experiment_path,
+        scheduler=scheduler,
+        environment=RLEnv,
+        env_config={
+            "scheduler_config": a.scheduler_config_path,
+            "obsprog_config": a.obs_config_path,
+        },
+    )
 
     rollout.generate_schedule(a.start_date, a.end_date, save=True)
-

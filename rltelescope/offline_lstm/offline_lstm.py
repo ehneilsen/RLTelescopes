@@ -31,13 +31,10 @@ class TrainOfflineLstm:
         self.loss_criterion = criterion
         self.n_epochs = n_epochs
 
-        self.loss_history = {
-            "train_loss": {},
-            "val_loss": {}
-        }
+        self.loss_history = {"train_loss": {}, "val_loss": {}}
 
     def train(self, epoch, train_data, val_data):
-        self.model.train() # Put it in train mode
+        self.model.train()  # Put it in train mode
         n_batches = len(train_data)
         self.loss_history["train_loss"][epoch] = []
         self.loss_history["val_loss"][epoch] = []
@@ -52,7 +49,7 @@ class TrainOfflineLstm:
                 loss.backward()
                 self.optimizer.step()
 
-                if np.ceil(epoch/4) % n_batches == 0:
+                if np.ceil(epoch / 4) % n_batches == 0:
                     self.loss_history["train_loss"][epoch].append(loss.item())
                     self.loss_history["val_loss"][epoch].append(self.test(val_data))
             else:
@@ -64,7 +61,7 @@ class TrainOfflineLstm:
         with torch.no_grad():
             for data in val_data:
                 observation = data["observation"]
-                if observation.size()[-1]!=0:
+                if observation.size()[-1] != 0:
                     output = self.model(data["observation"])
                     val_loss.append(self.loss_criterion(output, data["actions"]))
                 else:
@@ -73,7 +70,7 @@ class TrainOfflineLstm:
         return np.array(val_loss).mean()
 
     def __call__(self, train_data, val_data):
-        for epoch,_ in zip(range(self.n_epochs), tqdm.tqdm(range(self.n_epochs))):
+        for epoch, _ in zip(range(self.n_epochs), tqdm.tqdm(range(self.n_epochs))):
             self.train(epoch=epoch, train_data=train_data, val_data=val_data)
 
         print(self.loss_history)
@@ -83,23 +80,59 @@ class TrainOfflineLstm:
 
 if __name__ == "__main__":
     import sys
+
     sys.path.append("..")
     from observation_program import ObservationProgram
 
-    allowed_variables = ["seeing","clouds","lst","az","alt","zd","ha","airmass","sun_ra","sun_decl","sun_az","sun_alt","sun_zd","sun_ha","moon_ra","moon_decl","moon_az","moon_alt","moon_zd","moon_ha","moon_airmass","moon_phase","moon_illu","moon_Vmag","moon_angle","sky_mag","fwhm", "teff","exposure_time", "slew"]
+    allowed_variables = [
+        "seeing",
+        "clouds",
+        "lst",
+        "az",
+        "alt",
+        "zd",
+        "ha",
+        "airmass",
+        "sun_ra",
+        "sun_decl",
+        "sun_az",
+        "sun_alt",
+        "sun_zd",
+        "sun_ha",
+        "moon_ra",
+        "moon_decl",
+        "moon_az",
+        "moon_alt",
+        "moon_zd",
+        "moon_ha",
+        "moon_airmass",
+        "moon_phase",
+        "moon_illu",
+        "moon_Vmag",
+        "moon_angle",
+        "sky_mag",
+        "fwhm",
+        "teff",
+        "exposure_time",
+        "slew",
+    ]
 
     default_obsprog = "../train_configs/default_obsprog.conf"
     obsprog_train = ObservationProgram(config_path=default_obsprog, duration=1)
-    datagen_train = ObservationGenerator(obsprog_train, included_variables=allowed_variables, n_observation_chains=6)
+    datagen_train = ObservationGenerator(
+        obsprog_train, included_variables=allowed_variables, n_observation_chains=6
+    )
     obsprog_val = ObservationProgram(config_path=default_obsprog, duration=5)
-    datagen_val = ObservationGenerator(obsprog_val, included_variables=allowed_variables, n_observation_chains=3)
+    datagen_val = ObservationGenerator(
+        obsprog_val, included_variables=allowed_variables, n_observation_chains=3
+    )
 
     optimizer = torch.optim.SGD
     loss_criterion = torch.nn.MSELoss()
 
     TrainOfflineLstm(
-        input_dim=len(allowed_variables)+1,
+        input_dim=len(allowed_variables) + 1,
         optimizer=optimizer,
         criterion=loss_criterion,
-        n_epochs=50
+        n_epochs=50,
     )(datagen_train, datagen_val)

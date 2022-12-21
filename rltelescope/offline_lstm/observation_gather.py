@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append("..")
 from observation_program import ObservationProgram
 import pandas as pd
@@ -13,7 +14,9 @@ class ObservationGather:
     def __init__(self, n_observation_chains, chain_duration_days, config_path):
         self.n_observation_chains = n_observation_chains
 
-        self.observation_program = ObservationProgram(config_path=config_path, duration=chain_duration_days)
+        self.observation_program = ObservationProgram(
+            config_path=config_path, duration=chain_duration_days
+        )
         self.observations = pd.DataFrame()
         self.observation_chain = pd.DataFrame()
 
@@ -24,16 +27,18 @@ class ObservationGather:
 
     def collect_observation_pair(self, ra, decl):
         current_observation = pd.DataFrame(self.observation_program.state, index=[0])
-        current_observation['mjd'] = self.observation_program.mjd
-        self.observation_program.update_observation(ra, decl, band="g", exposure_time=300)
+        current_observation["mjd"] = self.observation_program.mjd
+        self.observation_program.update_observation(
+            ra, decl, band="g", exposure_time=300
+        )
 
         new_observation = pd.DataFrame(self.observation_program.state, index=[0])
-        new_observation['mjd'] = self.observation_program.mjd
+        new_observation["mjd"] = self.observation_program.mjd
 
         current_observation.columns = [f"{col}_t0" for col in current_observation]
         new_observation.columns = [f"{col}_t1" for col in new_observation]
         observation_pair = pd.concat([current_observation, new_observation], axis=1)
-        observation_pair['ra'] = ra
+        observation_pair["ra"] = ra
         observation_pair["decl"] = decl
         self.observation_chain = pd.concat([self.observation_chain, observation_pair])
 
