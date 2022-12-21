@@ -17,7 +17,7 @@ class Plotting:
 
     def schedule_obs(self):
 
-        schedule = pd.DataFrame(self.schedule).to_dict('index')
+        schedule = pd.DataFrame(self.schedule).to_dict("index")
         observations = []
         for step in schedule:
             step_vars = schedule[step]
@@ -32,14 +32,14 @@ class Plotting:
         return observations
 
     def schedule_metrics(self, schedule_states):
-        mean_teff = pd.Series(schedule_states['teff']).mean()
-        max_teff = pd.Series(schedule_states['teff']).max()
-        std_teff = pd.Series(schedule_states['teff']).std()
-        sum_teff = pd.Series(schedule_states['teff']).sum()
-        total_reward = pd.Series(schedule_states['reward']).sum()
+        mean_teff = pd.Series(schedule_states["teff"]).mean()
+        max_teff = pd.Series(schedule_states["teff"]).max()
+        std_teff = pd.Series(schedule_states["teff"]).std()
+        sum_teff = pd.Series(schedule_states["teff"]).sum()
+        total_reward = pd.Series(schedule_states["reward"]).sum()
 
-        grouping = self.schedule.groupby(["ra", 'decl', 'band'])
-        coverage = len(grouping.groups)/self.n_sites
+        grouping = self.schedule.groupby(["ra", "decl", "band"])
+        coverage = len(grouping.groups) / self.n_sites
 
         return {
             "Max Teff": max_teff,
@@ -63,7 +63,7 @@ class Plotting:
         # position distribution
         plt.cla()
         plt.clf()
-        fig = plt.subplot(projection='polar')
+        fig = plt.subplot(projection="polar")
         fig.set_theta_zero_location("N")
         fig.set_yticklabels([])
         fig.set_xticklabels([])
@@ -74,19 +74,18 @@ class Plotting:
         plt.colorbar(f)
         plt.savefig(f"{save_path}/position_{metric_name.lower()}.png")
 
-
     def __call__(self, save_path):
         rewards = self.schedule_obs()
         print(self.schedule_metrics(rewards))
         metrics = pd.DataFrame(self.schedule_metrics(rewards), index=[0])
 
         # Metrics
-        reward, teff = rewards['reward'], rewards['teff']
+        reward, teff = rewards["reward"], rewards["teff"]
 
-        mjd = self.schedule['mjd']
-        ra = self.schedule['ra']
-        decl = self.schedule['decl']
-        band = self.schedule['band']
+        mjd = self.schedule["mjd"]
+        ra = self.schedule["ra"]
+        decl = self.schedule["decl"]
+        band = self.schedule["band"]
 
         self.plot_metric_progress(mjd, ra, decl, band, reward, "Reward", save_path)
         self.plot_metric_progress(mjd, ra, decl, band, teff, "T_eff", save_path)
@@ -95,14 +94,17 @@ class Plotting:
         metrics.to_csv(f"{save_path}/schedule_metrics.csv")
 
 
-
 if __name__ == "__main__":
 
     from observation_program import ObservationProgram
 
     args = argparse.ArgumentParser()
-    args.add_argument("-s","--schedule_path", type=str, default="../results/test_dir/schedule.csv")
-    args.add_argument("--obsprog_config", type=str, default="./train_configs/default_obsprog.conf")
+    args.add_argument(
+        "-s", "--schedule_path", type=str, default="../results/test_dir/schedule.csv"
+    )
+    args.add_argument(
+        "--obsprog_config", type=str, default="./train_configs/default_obsprog.conf"
+    )
     args.add_argument("--n_sites", type=int, default=10)
     a = args.parse_args()
 

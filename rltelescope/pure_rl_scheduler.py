@@ -27,15 +27,17 @@ def reward_function(state):
     # Standard teff reward
     return state["teff"]
 
+
 def delve_reward(state):
 
-    slew_cubed = state['slew'] ** 3
-    hour_angle = state['ha']
-    airmass_cubed = 100 * (state['airmass'] - 1) ** 3
+    slew_cubed = state["slew"] ** 3
+    hour_angle = state["ha"]
+    airmass_cubed = 100 * (state["airmass"] - 1) ** 3
 
     quality = slew_cubed + hour_angle + airmass_cubed
 
-    return -1*quality
+    return -1 * quality
+
 
 class RLEnv(gym.Env):
     """
@@ -47,21 +49,18 @@ class RLEnv(gym.Env):
         super().__init__()
 
         self.scheduler = Scheduler(
-            config=config["scheduler_config"],
-            obsprog_config=config["obsprog_config"]
+            config=config["scheduler_config"], obsprog_config=config["obsprog_config"]
         )
         self.current_reward = self.reward()
         self.obs_vars = self.scheduler.obsprog.state.keys()
 
         if self.scheduler.config.has_option("schedule", "obs_vars"):
-            self.obs_vars = ast.literal_eval(self.scheduler.config.get("schedule", "obs_vars"))
+            self.obs_vars = ast.literal_eval(
+                self.scheduler.config.get("schedule", "obs_vars")
+            )
 
-        self.input_weights = {
-            obs_var: 1 for obs_var in self.obs_vars
-        }
-        self.input_powers = {
-            obs_var: 1 for obs_var in self.obs_vars
-        }
+        self.input_weights = {obs_var: 1 for obs_var in self.obs_vars}
+        self.input_powers = {obs_var: 1 for obs_var in self.obs_vars}
 
         if self.scheduler.config.has_option("schedule", "input_weights"):
             self.input_weights = ast.literal_eval(
@@ -89,8 +88,8 @@ class RLEnv(gym.Env):
             for obs_var in self.obs_vars
         }
 
-        if 'mjd' in self.obs_vars:
-            space['mjd'] = gym.spaces.Box(
+        if "mjd" in self.obs_vars:
+            space["mjd"] = gym.spaces.Box(
                 low=55165, high=70000, shape=(1,), dtype=np.float32
             )
 
@@ -106,7 +105,7 @@ class RLEnv(gym.Env):
         return observation
 
     def update_schedule(self, action, reward):
-        action['reward'] = reward
+        action["reward"] = reward
         action = pd.DataFrame(action, index=[0])
         self.scheduler.schedule = pd.concat([self.scheduler.schedule, action])
 
@@ -116,13 +115,18 @@ class RLEnv(gym.Env):
         full_observation = self.scheduler.obsprog.state
         observation = {
             obs_var: np.array(
-                [self.input_weights[obs_var] * full_observation[obs_var] *self.input_weights[
-                    obs_var]], dtype=np.float32)
+                [
+                    self.input_weights[obs_var]
+                    * full_observation[obs_var]
+                    * self.input_weights[obs_var]
+                ],
+                dtype=np.float32,
+            )
             for obs_var in self.obs_vars
         }
         reward = self.reward()
 
-        action['mjd'] = self.scheduler.obsprog.mjd
+        action["mjd"] = self.scheduler.obsprog.mjd
         done = self.scheduler.check_endtime(action)
         info = {}
 
@@ -136,8 +140,13 @@ class RLEnv(gym.Env):
         current_obs = self.scheduler.obsprog.state
         observation = {
             obs_var: np.array(
-                [self.input_weights[obs_var] * current_obs[obs_var] * self.input_weights[
-                    obs_var]], dtype=np.float32)
+                [
+                    self.input_weights[obs_var]
+                    * current_obs[obs_var]
+                    * self.input_weights[obs_var]
+                ],
+                dtype=np.float32,
+            )
             for obs_var in self.obs_vars
         }
 
